@@ -38,17 +38,11 @@ export const assistantFlow = ai.defineFlow(
       prompt: prompt,
       model: 'googleai/gemini-1.5-flash',
       history: history,
-      context: [
-          {
-              role: 'system',
-              content: [{text: prompt.replace(/\{\{.*?\}\}/g, '')}]
-          }
-      ],
-      config: {
-        temperature: 0.5,
-      },
       input: {
         agents,
+      },
+      config: {
+        temperature: 0.5,
       },
     });
 
