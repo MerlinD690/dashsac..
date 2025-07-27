@@ -89,8 +89,7 @@ export function AgentDashboard({ agents }: AgentDashboardProps) {
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: new Date().toISOString(),
         });
-        // @ts-ignore
-        updates.pauseStartTime = null; // Clear pause start time
+        updates.pauseStartTime = undefined;
     }
 
     await updateAgent(agent.id, updates);
@@ -153,7 +152,7 @@ export function AgentDashboard({ agents }: AgentDashboardProps) {
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={agent.activeClients > 0}>
+                  <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0}>
                     <Coffee className="h-4 w-4" />
                   </Button>
                 </TableCell>
@@ -161,7 +160,7 @@ export function AgentDashboard({ agents }: AgentDashboardProps) {
                   <Switch
                     checked={agent.isAvailable}
                     onCheckedChange={(checked) => handleToggleAvailability(agent, checked)}
-                    disabled={agent.activeClients > 0}
+                    disabled={agent.activeClients > 0 || agent.isOnPause}
                   />
                 </TableCell>
               </TableRow>

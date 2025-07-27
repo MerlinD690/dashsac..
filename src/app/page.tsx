@@ -43,20 +43,10 @@ export default function Home() {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   
-  // Seed data once on component mount
   useEffect(() => {
-    const seedData = async () => {
-        try {
-            await seedAgents(initialAgents);
-            console.log("Agents seeded successfully.");
-        } catch (error) {
-            console.error("Error seeding agents:", error);
-        }
-    };
-    seedData();
+    seedAgents(initialAgents).catch(console.error);
   }, []);
-  
-  // Listen for real-time updates
+
   useEffect(() => {
     const unsubscribeAgents = onSnapshot(collection(db, 'agents'), (snapshot) => {
       if (snapshot.metadata.hasPendingWrites) return;
@@ -64,13 +54,18 @@ export default function Home() {
         const data = doc.data() as AgentDocument;
         return {
           id: doc.id,
-          ...data,
+          name: data.name,
           lastInteractionTime: data.lastInteractionTime.toDate().toISOString(),
+          activeClients: data.activeClients,
+          isAvailable: data.isAvailable,
+          totalClientsHandled: data.totalClientsHandled,
+          avgTimePerClient: data.avgTimePerClient,
+          clientFeedback: data.clientFeedback,
+          isOnPause: data.isOnPause,
           pauseStartTime: data.pauseStartTime?.toDate().toISOString(),
         } as Agent;
       }).sort((a,b) => a.name.localeCompare(b.name));
       
-      // Only update if the data from firestore is not empty
       if (agentsData.length > 0) {
         setAgents(agentsData);
       }
