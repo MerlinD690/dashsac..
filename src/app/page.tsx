@@ -79,7 +79,7 @@ export default function Home() {
               OmoFlow Dashboard
             </h1>
           </div>
-          <ExportButton pauseLogs={pauseLogs} />
+          <ExportButton agents={agents} pauseLogs={pauseLogs} />
         </header>
 
         {isLoading ? (

@@ -12,13 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { PauseLog } from '@/lib/types';
+import { Agent, PauseLog } from '@/lib/types';
 
-export function ExportButton({ pauseLogs }: { pauseLogs: PauseLog[] }) {
+export function ExportButton({ agents, pauseLogs }: { agents: Agent[], pauseLogs: PauseLog[] }) {
   const { toast } = useToast();
   const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(new Date().setDate(new Date().getDate() - 7)),
-    to: new Date(),
+    from: new Date(new Date().setHours(0, 0, 0, 0)),
+    to: new Date(new Date().setHours(23, 59, 59, 999)),
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,34 +34,48 @@ export function ExportButton({ pauseLogs }: { pauseLogs: PauseLog[] }) {
 
     setIsLoading(true);
     try {
-      // Filter logs locally instead of fetching from DB
-      const logs = pauseLogs.filter(log => {
+      const filteredLogs = pauseLogs.filter(log => {
         const startTime = new Date(log.pauseStartTime);
         return startTime >= date.from! && startTime <= date.to!;
       });
+      
+      const agentDataForExport = agents.map(agent => {
+        const agentPauseLogs = filteredLogs.filter(log => log.agentName === agent.name);
+        const totalPauseTime = agentPauseLogs.reduce((acc, log) => {
+            const startTime = new Date(log.pauseStartTime).getTime();
+            const endTime = new Date(log.pauseEndTime).getTime();
+            return acc + (endTime - startTime);
+        }, 0);
+        const totalPauseMinutes = (totalPauseTime / 60000).toFixed(2);
 
-      if (logs.length === 0) {
+        return {
+            name: agent.name,
+            clientsHandled: agent.totalClientsHandled,
+            avgTime: agent.avgTimePerClient.toFixed(2),
+            pauseTime: totalPauseMinutes,
+        }
+      });
+
+
+      if (agentDataForExport.length === 0) {
         toast({
           title: 'Nenhum Registro',
-          description: 'Não há registros de pausa no período selecionado.',
+          description: 'Não há dados de atendentes para exportar.',
         });
         setIsLoading(false);
         return;
       }
 
       const csvContent = "data:text/csv;charset=utf-8," 
-        + "Atendente,Início da Pausa,Fim da Pausa,Duração (min)\n"
-        + logs.map(log => {
-            const startTime = new Date(log.pauseStartTime);
-            const endTime = new Date(log.pauseEndTime);
-            const duration = ((endTime.getTime() - startTime.getTime()) / 60000).toFixed(2);
-            return `${log.agentName},${format(startTime, 'dd/MM/yyyy HH:mm')},${format(endTime, 'dd/MM/yyyy HH:mm')},${duration}`;
+        + "Atendente,Clientes Atendidos,Tempo Médio por Atendimento (min),Tempo Total em Pausa (min)\n"
+        + agentDataForExport.map(d => {
+            return `${d.name},${d.clientsHandled},${d.avgTime},${d.pauseTime}`;
         }).join("\n");
 
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `relatorio_pausas_${format(date.from, 'yyyy-MM-dd')}_a_${format(date.to, 'yyyy-MM-dd')}.csv`);
+      link.setAttribute("download", `relatorio_performance_${format(date.from, 'yyyy-MM-dd')}_a_${format(date.to, 'yyyy-MM-dd')}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -118,9 +132,8 @@ export function ExportButton({ pauseLogs }: { pauseLogs: PauseLog[] }) {
       </Popover>
       <Button onClick={handleExport} disabled={isLoading}>
         <Download className="mr-2 h-4 w-4" />
-        {isLoading ? 'Exportando...' : 'Exportar Relatório de Pausas'}
+        {isLoading ? 'Exportando...' : 'Exportar Relatório'}
       </Button>
     </div>
   );
 }
-
