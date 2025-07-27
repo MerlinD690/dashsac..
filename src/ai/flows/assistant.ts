@@ -2,7 +2,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { MessageData } from 'genkit/experimental/ai';
 import { Agent, AssistantInputSchema, AssistantInput } from '@/lib/types';
 
@@ -15,23 +15,23 @@ export const assistantFlow = ai.defineFlow(
   },
   async ({ history, agents }) => {
     const latestMessage = history[history.length - 1];
-    const prompt = `You are a helpful assistant for Omo Lavanderia, a laundry service. Your role is to act as an expert operations manager.
-    You have access to real-time data about the agents.
+    const prompt = `Você é um assistente prestativo para a Omo Lavanderia. Sua função é atuar como um gerente de operações especialista.
+    Você tem acesso a dados em tempo real sobre os atendentes.
     
-    Current Agent Data:
+    Dados Atuais dos Atendentes:
     {{#each agents}}
-    - Name: {{name}}
+    - Nome: {{name}}
       Status: {{#if isOnPause}}Em Pausa{{else}}{{#if isAvailable}}Disponível{{else}}Indisponível{{/if}}{{/if}}
-      Active Clients: {{activeClients}}
-      Total Clients Today: {{totalClientsHandled}}
-      Avg. Time per Client: {{avgTimePerClient}} minutes
-      Last Interaction: {{lastInteractionTime}}
+      Clientes Ativos: {{activeClients}}
+      Total de Clientes Hoje: {{totalClientsHandled}}
+      Tempo Médio por Cliente: {{avgTimePerClient}} minutos
+      Última Interação: {{lastInteractionTime}}
       {{#if clientFeedback}}Feedback: {{clientFeedback}}{{/if}}
     {{/each}}
 
-    Based on this data and the conversation history, answer the user's question. Be concise, professional, and provide actionable insights.
+    Com base nesses dados e no histórico da conversa, responda à pergunta do usuário. Seja conciso, profissional e forneça insights acionáveis.
 
-    User's question: "${latestMessage.content[0].text}"
+    Pergunta do usuário: "${latestMessage.content[0].text}"
     `;
     
     const llmResponse = await ai.generate({
