@@ -2,16 +2,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onSnapshot, collection, Timestamp } from 'firebase/firestore';
+import { onSnapshot, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
-import { seedAgents } from './actions';
 import { AgentDashboard } from '@/components/AgentDashboard';
 import { Assistant } from '@/components/Assistant';
 import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 
 const initialAgents: Agent[] = [
@@ -43,22 +41,10 @@ function OmoLogo() {
 }
 
 export default function Home() {
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [seeded, setSeeded] = useState(false);
-
-  useEffect(() => {
-    // We run this to seed the database
-    const doSeed = async () => {
-        await seedAgents(initialAgents);
-        setSeeded(true);
-    }
-    if (!seeded) {
-        doSeed();
-    }
-  }, [seeded]);
 
   useEffect(() => {
     const unsubscribeAgents = onSnapshot(collection(db, 'agents'), (snapshot) => {
@@ -71,10 +57,11 @@ export default function Home() {
           pauseStartTime: data.pauseStartTime?.toDate().toISOString(),
         } as Agent;
       }).sort((a,b) => a.name.localeCompare(b.name));
-      setAgents(agentsData);
-      if(agentsData.length > 0) {
-          setIsLoading(false);
+      
+      if (snapshot.docs.length > 0) {
+        setAgents(agentsData);
       }
+      setIsLoading(false);
     });
 
     const unsubscribePauseLogs = onSnapshot(collection(db, 'pauseLogs'), (snapshot) => {
@@ -97,8 +84,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (isLoading) {
-      const timer = setInterval(() => {
+      setProgress(0);
+      timer = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 95) {
             clearInterval(timer);
@@ -107,10 +96,10 @@ export default function Home() {
           return prev + 5;
         });
       }, 100);
-      return () => clearInterval(timer);
     } else {
         setProgress(100);
     }
+    return () => clearInterval(timer);
   }, [isLoading]);
 
   return (
