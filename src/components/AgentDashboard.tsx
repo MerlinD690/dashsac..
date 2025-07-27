@@ -32,12 +32,12 @@ function playNotificationSound() {
   oscillator.connect(gainNode);
   gainNode.connect(audioContext.destination);
 
-  oscillator.type = 'sine';
-  oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
-  gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Volume
+  oscillator.type = 'triangle';
+  oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+  gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Increased Volume
 
   oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.2); // Beep for 0.2 seconds
+  oscillator.stop(audioContext.currentTime + 0.3); // Beep for 0.3 seconds
 }
 
 
@@ -109,13 +109,10 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
 
   const sortedAgents = [...agents].sort((a, b) => {
     if (a.isAvailable !== b.isAvailable) {
-      return a.isAvailable ? -1 : 1;
+        return a.isAvailable ? -1 : 1;
     }
     if (a.isOnPause !== b.isOnPause) {
         return a.isOnPause ? 1 : -1;
-    }
-    if (a.isAvailable === b.isAvailable) {
-        if(!a.isAvailable) return 1; // Both unavailable, no change
     }
     return a.name.localeCompare(b.name);
   });
@@ -146,11 +143,11 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
                 <TableCell>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
                 <TableCell className="text-center">
                    <div className="flex items-center justify-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.activeClients === 0}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
                             <Minus className="h-4 w-4" />
                         </Button>
                         <span className="w-4 font-bold text-lg">{agent.activeClients}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.activeClients === 5}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
