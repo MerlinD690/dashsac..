@@ -2,13 +2,10 @@
 'use client';
 
 import { useState } from 'react';
-import { CornerDownLeft, Bot, Sparkles, LoaderCircle, Mic } from 'lucide-react';
+import { CornerDownLeft, Bot, Sparkles, LoaderCircle } from 'lucide-react';
 import { runFlow } from '@genkit-ai/next/client';
 import type { MessageData } from 'genkit/experimental/ai';
-import { z } from 'zod';
 import { assistant } from '@/ai/flows/assistant';
-import { summarizeDailyOperations, SummarizeDailyOperationsInput } from '@/ai/flows/summarize-daily-operations';
-import { analyzeAgentPerformance, AnalyzeAgentPerformanceInput } from '@/ai/flows/analyze-agent-performance';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,21 +43,12 @@ export function Assistant({ agents, pauseLogs }: AssistantProps) {
     setIsLoading(true);
 
     try {
-        let response: string | undefined;
-
-        if (userMessage.toLowerCase().includes('resumo geral')) {
-            const summaryData: SummarizeDailyOperationsInput = { agentsData: agents, pauseLogs: pauseLogs };
-            const result = await summarizeDailyOperations(summaryData);
-            response = result.summary;
-        } else {
-             const assistantInput: AssistantInput = { history: newMessages, agents: agents };
-
-            if (prompt) {
-                assistantInput.history = [...messages, newUserMessage];
-            }
-            
-            response = await runFlow(assistant, assistantInput);
-        }
+        const assistantInput: AssistantInput = { 
+            history: newMessages, 
+            agents: agents 
+        };
+        
+        const response = await runFlow(assistant, assistantInput);
 
         if(response) {
             setMessages(prev => [...prev, { role: 'model', content: [{ text: response as string }] }]);
@@ -70,7 +58,7 @@ export function Assistant({ agents, pauseLogs }: AssistantProps) {
         toast({
             variant: 'destructive',
             title: 'Erro do Assistente',
-            description: 'Não foi possível obter uma resposta da IA.',
+            description: 'Não foi possível obter uma resposta da IA. Verifique se a chave da API está configurada corretamente.',
         });
         setMessages(prev => [...prev, { role: 'model', content: [{ text: "Desculpe, não consegui processar sua solicitação." }] }]);
     } finally {

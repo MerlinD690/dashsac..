@@ -35,6 +35,10 @@ export const assistantFlow = ai.defineFlow(
     Com base nesses dados e no histórico da conversa, responda à pergunta do usuário. Seja conciso, profissional e forneça insights acionáveis.
 
     Pergunta do usuário: "${latestMessage.content[0].text}"
+
+    Se a pergunta for "Melhor Performance", identifique o atendente com o maior 'totalClientsHandled' e informe o nome dele e seu 'avgTimePerClient'.
+    Se a pergunta for "Resumo Geral", forneça um breve resumo dos clientes totais atendidos e o status geral dos atendentes (quantos estão disponíveis, em pausa, etc.).
+    Se a pergunta for "Quem está em pausa?", liste os nomes dos atendentes onde 'isOnPause' é verdadeiro.
     `;
     
     const llmResponse = await ai.generate({
