@@ -10,17 +10,17 @@ import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
 import { Progress } from '@/components/ui/progress';
 
-const initialAgents: Agent[] = [
-    { id: 'agent-1', name: 'Beatriz', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-2', name: 'Valquiria', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-3', name: 'Larissa', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-4', name: 'Sophia', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-5', name: 'Lays', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-6', name: 'Flaviane', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-7', name: 'Juliana', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-8', name: 'Laura', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-9', name: 'Camila', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
-    { id: 'agent-10', name: 'Giovanna', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+const initialAgentsData: Omit<Agent, 'id' | 'lastInteractionTime' | 'activeClients' | 'isAvailable' | 'totalClientsHandled' | 'avgTimePerClient' | 'isOnPause'>[] = [
+    { name: 'Beatriz' },
+    { name: 'Valquiria' },
+    { name: 'Larissa' },
+    { name: 'Sophia' },
+    { name: 'Lays' },
+    { name: 'Flaviane' },
+    { name: 'Juliana' },
+    { name: 'Laura' },
+    { name: 'Camila' },
+    { name: 'Giovanna' },
 ];
 
 
@@ -39,9 +39,24 @@ function OmoLogo() {
 }
 
 export default function Home() {
-  const [agents, setAgents] = useState<Agent[]>(initialAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // No longer loading from DB on init
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const initializedAgents = initialAgentsData.map((agent, index) => ({
+      id: `agent-${index + 1}`,
+      name: agent.name,
+      lastInteractionTime: new Date().toISOString(),
+      activeClients: 0,
+      isAvailable: true,
+      totalClientsHandled: 0,
+      avgTimePerClient: 0,
+      isOnPause: false,
+    }));
+    setAgents(initializedAgents);
+    setIsLoading(false);
+  }, []);
   
   const handleUpdateAgent = (agentId: string, updates: Partial<Agent>) => {
     setAgents(prevAgents => prevAgents.map(agent => 
