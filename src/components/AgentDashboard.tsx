@@ -26,18 +26,25 @@ function playNotificationSound() {
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   if (!audioContext) return;
 
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
+  function createTone(frequency: number, startTime: number, duration: number) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
 
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
 
-  oscillator.type = 'square';
-  oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
-  gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Increased Volume
+    oscillator.type = 'sine'; // Sine wave is often more pleasant
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+    gainNode.gain.setValueAtTime(0.4, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + duration); // fade out
 
-  oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.15); // Shorter, more 'beep' like
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  }
+  
+  const now = audioContext.currentTime;
+  createTone(523.25, now, 0.15); // C5
+  createTone(659.25, now + 0.2, 0.15); // E5
 }
 
 
