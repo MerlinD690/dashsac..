@@ -21,6 +21,26 @@ interface AgentDashboardProps {
   onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void;
 }
 
+// Function to play a simple beep sound
+function playNotificationSound() {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
+  gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Volume
+
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.2); // Beep for 0.2 seconds
+}
+
+
 export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDashboardProps) {
   const { toast } = useToast();
 
@@ -36,6 +56,7 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
       updates.totalClientsHandled = agent.totalClientsHandled + 1;
       // Simple avg time logic, can be improved
       updates.avgTimePerClient = (agent.avgTimePerClient * agent.totalClientsHandled + 15) / (agent.totalClientsHandled + 1);
+      playNotificationSound();
     }
     onUpdateAgent(agent.id, updates);
   };
