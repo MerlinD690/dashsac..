@@ -14,14 +14,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Agent } from '@/lib/types';
-import { addPauseLog, updateAgent } from '@/app/actions';
-import { Circle, Coffee, Minus, Plus, User } from 'lucide-react';
+import { Agent, PauseLog } from '@/lib/types';
+import { Circle, Coffee, Minus, Plus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface AgentDashboardProps {
   agents: Agent[];
+  onUpdateAgent: (agentId: string, updates: Partial<Agent>) => void;
+  onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void;
 }
 
 const getNextAgent = (agents: Agent[]): Agent | null => {
@@ -36,11 +37,11 @@ const getNextAgent = (agents: Agent[]): Agent | null => {
   return availableAgents[0] || null;
 };
 
-export function AgentDashboard({ agents }: AgentDashboardProps) {
+export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDashboardProps) {
   const { toast } = useToast();
   const nextAgent = getNextAgent(agents);
 
-  const handleUpdateClients = async (agent: Agent, change: 1 | -1) => {
+  const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
     const newCount = agent.activeClients + change;
     if (newCount < 0 || newCount > 5) return;
 
@@ -53,10 +54,10 @@ export function AgentDashboard({ agents }: AgentDashboardProps) {
       // Simple avg time logic, can be improved
       updates.avgTimePerClient = (agent.avgTimePerClient * agent.totalClientsHandled + 15) / (agent.totalClientsHandled + 1);
     }
-    await updateAgent(agent.id, updates);
+    onUpdateAgent(agent.id, updates);
   };
 
-  const handleToggleAvailability = async (agent: Agent, available: boolean) => {
+  const handleToggleAvailability = (agent: Agent, available: boolean) => {
     if (!available && agent.activeClients > 0) {
       toast({
         variant: 'destructive',
@@ -65,10 +66,10 @@ export function AgentDashboard({ agents }: AgentDashboardProps) {
       });
       return;
     }
-    await updateAgent(agent.id, { isAvailable: available });
+    onUpdateAgent(agent.id, { isAvailable: available });
   };
 
-  const handleTogglePause = async (agent: Agent) => {
+  const handleTogglePause = (agent: Agent) => {
     if (agent.activeClients > 0) {
       toast({
         variant: 'destructive',
@@ -84,7 +85,7 @@ export function AgentDashboard({ agents }: AgentDashboardProps) {
     if (isOnPause) {
         updates.pauseStartTime = new Date().toISOString();
     } else if(agent.pauseStartTime) {
-        await addPauseLog({
+        onAddPauseLog({
             agentName: agent.name,
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: new Date().toISOString(),
@@ -92,7 +93,7 @@ export function AgentDashboard({ agents }: AgentDashboardProps) {
         updates.pauseStartTime = undefined;
     }
 
-    await updateAgent(agent.id, updates);
+    onUpdateAgent(agent.id, updates);
   };
 
 

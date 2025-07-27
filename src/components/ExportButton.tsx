@@ -12,10 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { getPauseLogsInRange } from '@/app/actions';
 import { PauseLog } from '@/lib/types';
 
-export function ExportButton() {
+export function ExportButton({ pauseLogs }: { pauseLogs: PauseLog[] }) {
   const { toast } = useToast();
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(new Date().setDate(new Date().getDate() - 7)),
@@ -35,13 +34,18 @@ export function ExportButton() {
 
     setIsLoading(true);
     try {
-      const logs = await getPauseLogsInRange(date.from, date.to);
+      // Filter logs locally instead of fetching from DB
+      const logs = pauseLogs.filter(log => {
+        const startTime = new Date(log.pauseStartTime);
+        return startTime >= date.from! && startTime <= date.to!;
+      });
 
       if (logs.length === 0) {
         toast({
           title: 'Nenhum Registro',
           description: 'Não há registros de pausa no período selecionado.',
         });
+        setIsLoading(false);
         return;
       }
 
@@ -119,3 +123,4 @@ export function ExportButton() {
     </div>
   );
 }
+

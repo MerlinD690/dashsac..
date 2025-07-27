@@ -2,15 +2,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onSnapshot, collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
+import type { Agent, PauseLog } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
 import { Assistant } from '@/components/Assistant';
 import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
-import { seedAgents } from './actions';
 import { Progress } from '@/components/ui/progress';
 
 const initialAgents: Agent[] = [
@@ -42,68 +39,20 @@ function OmoLogo() {
 }
 
 export default function Home() {
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<Agent[]>(initialAgents.sort((a,b) => a.name.localeCompare(b.name)));
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // No longer loading from DB on init
   
-  useEffect(() => {
-    const initializeData = async () => {
-      const agentsCollection = collection(db, 'agents');
-      const snapshot = await getDocs(agentsCollection);
-      if (snapshot.empty) {
-        console.log('Seeding initial agents...');
-        await seedAgents(initialAgents);
-      }
-    };
+  const handleUpdateAgent = (agentId: string, updates: Partial<Agent>) => {
+    setAgents(prevAgents => prevAgents.map(agent => 
+      agent.id === agentId ? { ...agent, ...updates } : agent
+    ));
+  };
+  
+  const handleAddPauseLog = (log: Omit<PauseLog, 'id'>) => {
+      setPauseLogs(prevLogs => [...prevLogs, {...log, id: `log-${Date.now()}`}]);
+  };
 
-    initializeData().catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribeAgents = onSnapshot(collection(db, 'agents'), (snapshot) => {
-      if (snapshot.metadata.hasPendingWrites) return;
-      
-      const agentsData = snapshot.docs.map(doc => {
-        const data = doc.data() as AgentDocument;
-        return {
-          id: doc.id,
-          name: data.name,
-          lastInteractionTime: data.lastInteractionTime.toDate().toISOString(),
-          activeClients: data.activeClients,
-          isAvailable: data.isAvailable,
-          totalClientsHandled: data.totalClientsHandled,
-          avgTimePerClient: data.avgTimePerClient,
-          clientFeedback: data.clientFeedback,
-          isOnPause: data.isOnPause,
-          pauseStartTime: data.pauseStartTime?.toDate().toISOString(),
-        } as Agent;
-      }).sort((a,b) => a.name.localeCompare(b.name));
-      
-      setAgents(agentsData);
-      if (isLoading) setIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching agents:", error);
-        setIsLoading(false);
-    });
-
-    const unsubscribePauseLogs = onSnapshot(collection(db, 'pauseLogs'), (snapshot) => {
-      const logsData = snapshot.docs.map(doc => {
-        const data = doc.data() as PauseLogDocument;
-        return {
-            id: doc.id,
-            ...data,
-            pauseStartTime: data.pauseStartTime.toDate().toISOString(),
-            pauseEndTime: data.pauseEndTime.toDate().toISOString(),
-        } as PauseLog;
-      });
-      setPauseLogs(logsData);
-    });
-
-    return () => {
-      unsubscribeAgents();
-      unsubscribePauseLogs();
-    };
-  }, [isLoading]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -115,7 +64,7 @@ export default function Home() {
               OmoFlow Dashboard
             </h1>
           </div>
-          <ExportButton />
+          <ExportButton pauseLogs={pauseLogs} />
         </header>
 
         {isLoading ? (
@@ -124,7 +73,11 @@ export default function Home() {
              <p className="mt-4 text-muted-foreground">Carregando atendentes...</p>
           </div>
         ) : (
-          <AgentDashboard agents={agents} />
+          <AgentDashboard 
+            agents={agents}
+            onUpdateAgent={handleUpdateAgent}
+            onAddPauseLog={handleAddPauseLog}
+          />
         )}
         
         <ClientOnly>

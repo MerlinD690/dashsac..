@@ -1,15 +1,30 @@
 
 'use server';
 
+// NOTE: This file is not currently used because the app is running in client-side only mode.
+// Firestore API needs to be enabled in the project for these functions to work.
+
 import { db } from '@/lib/firebase';
 import { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
-import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp, deleteField, getDoc, collectionGroup, deleteDoc, documentId } from 'firebase/firestore';
 
 const agentsCollection = collection(db, 'agents');
 const pauseLogsCollection = collection(db, 'pauseLogs');
 
-export async function seedAgents(agents: Agent[]) {
-  const batch = writeBatch(db);
+export async function clearAndSeedAgents(agents: Agent[]) {
+  // Clear existing agents
+  const existingAgentsSnapshot = await getDocs(agentsCollection);
+  if (!existingAgentsSnapshot.empty) {
+    const deleteBatch = writeBatch(db);
+    existingAgentsSnapshot.docs.forEach(doc => {
+      deleteBatch.delete(doc.ref);
+    });
+    await deleteBatch.commit();
+    console.log("Existing agents cleared.");
+  }
+  
+  // Seed new agents
+  const seedBatch = writeBatch(db);
   agents.forEach((agent) => {
     const agentDocRef = doc(agentsCollection, agent.id);
     const agentData: Omit<AgentDocument, 'id' | 'lastInteractionTime'> & { lastInteractionTime: any } = {
@@ -25,9 +40,10 @@ export async function seedAgents(agents: Agent[]) {
       delete agentData.clientFeedback;
     }
 
-    batch.set(agentDocRef, agentData);
+    seedBatch.set(agentDocRef, agentData);
   });
-  await batch.commit();
+  await seedBatch.commit();
+  console.log("New agents seeded.");
 }
 
 
@@ -41,8 +57,6 @@ export async function updateAgent(agentId: string, data: Partial<Agent>) {
     updateData.lastInteractionTime = Timestamp.fromDate(new Date(data.lastInteractionTime));
   }
   
-  // Handle pauseStartTime. If it's explicitly set to undefined in the component,
-  // we use deleteField() to remove it from the document.
   if (data.hasOwnProperty('pauseStartTime')) {
     if (data.pauseStartTime) {
       updateData.pauseStartTime = Timestamp.fromDate(new Date(data.pauseStartTime));
