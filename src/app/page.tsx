@@ -43,11 +43,11 @@ function OmoLogo() {
 export default function Home() {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
-
+  
+  // Listen for real-time updates
   useEffect(() => {
     const unsubscribeAgents = onSnapshot(collection(db, 'agents'), (snapshot) => {
+      if (snapshot.metadata.hasPendingWrites) return;
       const agentsData = snapshot.docs.map(doc => {
         const data = doc.data() as AgentDocument;
         return {
@@ -58,10 +58,10 @@ export default function Home() {
         } as Agent;
       }).sort((a,b) => a.name.localeCompare(b.name));
       
-      if (snapshot.docs.length > 0) {
+      // Only update if the data from firestore is not empty
+      if (agentsData.length > 0) {
         setAgents(agentsData);
       }
-      setIsLoading(false);
     });
 
     const unsubscribePauseLogs = onSnapshot(collection(db, 'pauseLogs'), (snapshot) => {
@@ -83,25 +83,6 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isLoading) {
-      setProgress(0);
-      timer = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 95) {
-            clearInterval(timer);
-            return 95;
-          }
-          return prev + 5;
-        });
-      }, 100);
-    } else {
-        setProgress(100);
-    }
-    return () => clearInterval(timer);
-  }, [isLoading]);
-
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 relative">
@@ -115,16 +96,7 @@ export default function Home() {
           <ExportButton />
         </header>
 
-        {isLoading ? (
-          <div className="space-y-4 flex flex-col items-center justify-center h-64">
-             <div className="w-1/2 text-center">
-                <p className="mb-2">Carregando atendentes...</p>
-                <Progress value={progress} />
-             </div>
-          </div>
-        ) : (
-          <AgentDashboard agents={agents} />
-        )}
+        <AgentDashboard agents={agents} />
         
         <ClientOnly>
           <Assistant agents={agents} pauseLogs={pauseLogs} />
