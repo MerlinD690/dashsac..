@@ -32,12 +32,12 @@ function playNotificationSound() {
   oscillator.connect(gainNode);
   gainNode.connect(audioContext.destination);
 
-  oscillator.type = 'triangle';
+  oscillator.type = 'square';
   oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
   gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Increased Volume
 
   oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.3); // Beep for 0.3 seconds
+  oscillator.stop(audioContext.currentTime + 0.15); // Shorter, more 'beep' like
 }
 
 
