@@ -27,14 +27,13 @@ function playNotificationSound() {
   gainNode.connect(audioContext.destination);
 
   oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A slightly higher pitch (A5 note)
   gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-  oscillator.frequency.setValueAtTime(700, audioContext.currentTime);
-
-  // Gentle fade out for a cleaner sound
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.15);
   
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.2);
+
   oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.2);
+  oscillator.stop(audioContext.currentTime + 0.25);
 }
 
 
