@@ -32,7 +32,7 @@ const SummarizeDailyOperationsInputSchema = z.object({
 export type SummarizeDailyOperationsInput = z.infer<typeof SummarizeDailyOperationsInputSchema>;
 
 const SummarizeDailyOperationsOutputSchema = z.object({
-  summary: z.string().describe('A summary of the day\'s operations, including key metrics and unusual events.'),
+  summary: z.string().describe('Um resumo das operações do dia, incluindo as principais métricas e eventos incomuns.'),
 });
 
 export type SummarizeDailyOperationsOutput = z.infer<typeof SummarizeDailyOperationsOutputSchema>;
@@ -45,23 +45,23 @@ const summarizeDailyOperationsPrompt = ai.definePrompt({
   name: 'summarizeDailyOperationsPrompt',
   input: {schema: SummarizeDailyOperationsInputSchema},
   output: {schema: SummarizeDailyOperationsOutputSchema},
-  prompt: `You are a laundry manager providing a summary of the day's operations.
+  prompt: `Você é um gerente de lavanderia fornecendo um resumo das operações do dia.
 
-  Provide a concise overview of the day's activities, including:
-  - Total number of clients served.
-  - Total pause time for all agents.
-  - Identification of any unusual events or significant deviations from the norm.
+  Forneça uma visão geral concisa das atividades do dia, incluindo:
+  - Número total de clientes atendidos.
+  - Tempo total de pausa para todos os atendentes.
+  - Identificação de quaisquer eventos incomuns ou desvios significativos da norma.
 
-  Analyze the following data to create the summary:
+  Analise os seguintes dados para criar o resumo:
 
-  Agents Data:
+  Dados dos Atendentes:
   {{#each agentsData}}
-  - Name: {{name}}, Clients Handled: {{totalClientsHandled}}, Active Clients: {{activeClients}}, On Pause: {{isOnPause}}
+  - Nome: {{name}}, Clientes Atendidos: {{totalClientsHandled}}, Clientes Ativos: {{activeClients}}, Em Pausa: {{isOnPause}}
   {{/each}}
 
-  Pause Logs:
+  Registros de Pausa:
   {{#each pauseLogs}}
-  - Agent: {{agentName}}, Start Time: {{pauseStartTime}}, End Time: {{pauseEndTime}}
+  - Atendente: {{agentName}}, Início: {{pauseStartTime}}, Fim: {{pauseEndTime}}
   {{/each}}
   `,
 });
