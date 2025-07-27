@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onSnapshot, collection } from 'firebase/firestore';
+import { onSnapshot, collection, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
@@ -10,6 +11,7 @@ import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
 import { seedAgents } from './actions';
+import { Progress } from '@/components/ui/progress';
 
 const initialAgents: Agent[] = [
     { id: 'agent-1', name: 'Beatriz', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
@@ -40,16 +42,27 @@ function OmoLogo() {
 }
 
 export default function Home() {
-  const [agents, setAgents] = useState<Agent[]>(initialAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    seedAgents(initialAgents).catch(console.error);
+    const initializeData = async () => {
+      const agentsCollection = collection(db, 'agents');
+      const snapshot = await getDocs(agentsCollection);
+      if (snapshot.empty) {
+        console.log('Seeding initial agents...');
+        await seedAgents(initialAgents);
+      }
+    };
+
+    initializeData().catch(console.error);
   }, []);
 
   useEffect(() => {
     const unsubscribeAgents = onSnapshot(collection(db, 'agents'), (snapshot) => {
       if (snapshot.metadata.hasPendingWrites) return;
+      
       const agentsData = snapshot.docs.map(doc => {
         const data = doc.data() as AgentDocument;
         return {
@@ -66,9 +79,11 @@ export default function Home() {
         } as Agent;
       }).sort((a,b) => a.name.localeCompare(b.name));
       
-      if (agentsData.length > 0) {
-        setAgents(agentsData);
-      }
+      setAgents(agentsData);
+      if (isLoading) setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching agents:", error);
+        setIsLoading(false);
     });
 
     const unsubscribePauseLogs = onSnapshot(collection(db, 'pauseLogs'), (snapshot) => {
@@ -88,7 +103,7 @@ export default function Home() {
       unsubscribeAgents();
       unsubscribePauseLogs();
     };
-  }, []);
+  }, [isLoading]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -103,7 +118,14 @@ export default function Home() {
           <ExportButton />
         </header>
 
-        <AgentDashboard agents={agents} />
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center flex-1">
+             <Progress value={33} className="w-1/2" />
+             <p className="mt-4 text-muted-foreground">Carregando atendentes...</p>
+          </div>
+        ) : (
+          <AgentDashboard agents={agents} />
+        )}
         
         <ClientOnly>
           <Assistant agents={agents} pauseLogs={pauseLogs} />
