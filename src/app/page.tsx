@@ -39,7 +39,7 @@ function OmoLogo() {
 }
 
 export default function Home() {
-  const [agents, setAgents] = useState<Agent[]>(initialAgents.sort((a,b) => a.name.localeCompare(b.name)));
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(false); // No longer loading from DB on init
   

@@ -22,21 +22,8 @@ interface AgentDashboardProps {
   onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void;
 }
 
-const getNextAgent = (agents: Agent[]): Agent | null => {
-  const availableAgents = agents
-    .filter(a => a.isAvailable && !a.isOnPause)
-    .sort((a, b) => {
-      if (a.activeClients !== b.activeClients) {
-        return a.activeClients - b.activeClients;
-      }
-      return new Date(a.lastInteractionTime).getTime() - new Date(b.lastInteractionTime).getTime();
-    });
-  return availableAgents[0] || null;
-};
-
 export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDashboardProps) {
   const { toast } = useToast();
-  const nextAgent = getNextAgent(agents);
 
   const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
     const newCount = agent.activeClients + change;
@@ -100,6 +87,8 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
     return { text: 'Indisponível', color: 'bg-red-500', icon: <Circle className="h-2 w-2 fill-current" /> };
   };
 
+  const sortedAgents = [...agents].sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
       <Table>
@@ -114,15 +103,13 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
           </TableRow>
         </TableHeader>
         <TableBody>
-          {agents.map((agent) => {
+          {sortedAgents.map((agent) => {
             const status = getStatus(agent);
-            const isNext = agent.id === nextAgent?.id;
             return (
-              <TableRow key={agent.id} className={isNext ? 'bg-primary/10' : ''}>
+              <TableRow key={agent.id}>
                 <TableCell>
                   <div className="font-medium">
                     {agent.name}
-                    {isNext && <Badge variant="secondary" className="ml-2 bg-accent text-accent-foreground">Próximo</Badge>}
                   </div>
                 </TableCell>
                 <TableCell>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
