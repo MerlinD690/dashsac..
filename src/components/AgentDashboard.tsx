@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -124,10 +123,6 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
               <TableRow key={agent.id} className={isNext ? 'bg-primary/10' : ''}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={`https://i.pravatar.cc/40?u=${agent.id}`} />
-                      <AvatarFallback>{agent.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
                     <div className="font-medium">
                       {agent.name}
                       {isNext && <Badge variant="secondary" className="ml-2 bg-accent text-accent-foreground">Próximo</Badge>}
