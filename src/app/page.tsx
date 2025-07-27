@@ -14,12 +14,18 @@ import RealTimeClock from '@/components/RealTimeClock';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const initialAgents: Agent[] = [
-  { id: 'agent-1', name: 'Ana Silva', lastInteractionTime: '2023-10-26T10:00:00Z', activeClients: 2, isAvailable: true, totalClientsHandled: 15, avgTimePerClient: 12, clientFeedback: 'Muito atenciosa', isOnPause: false },
-  { id: 'agent-2', name: 'Bruno Costa', lastInteractionTime: '2023-10-26T10:15:00Z', activeClients: 1, isAvailable: true, totalClientsHandled: 10, avgTimePerClient: 15, isOnPause: false },
-  { id: 'agent-3', name: 'Carla Dias', lastInteractionTime: '2023-10-26T09:50:00Z', activeClients: 0, isAvailable: false, totalClientsHandled: 20, avgTimePerClient: 10, isOnPause: false },
-  { id: 'agent-4', name: 'Daniel Alves', lastInteractionTime: '2023-10-26T10:20:00Z', activeClients: 3, isAvailable: true, totalClientsHandled: 5, avgTimePerClient: 18, clientFeedback: 'Poderia ser mais rápido', isOnPause: true, pauseStartTime: new Date(Date.now() - 5 * 60000).toISOString() },
-  { id: 'agent-5', name: 'Elisa Ferreira', lastInteractionTime: '2023-10-26T10:05:00Z', activeClients: 0, isAvailable: true, totalClientsHandled: 25, avgTimePerClient: 8, isOnPause: false },
+    { id: 'agent-1', name: 'Beatriz', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-2', name: 'Valquiria', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-3', name: 'Larissa', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-4', name: 'Sophia', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-5', name: 'Lays', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-6', name: 'Flaviane', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-7', name: 'Juliana', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-8', name: 'Laura', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-9', name: 'Camila', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
+    { id: 'agent-10', name: 'Giovanna', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
 ];
+
 
 function OmoLogo() {
   return (
