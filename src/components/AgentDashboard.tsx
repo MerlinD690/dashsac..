@@ -15,8 +15,6 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog } from '@/lib/types';
 import { Circle, Coffee, Minus, Plus } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface AgentDashboardProps {
   agents: Agent[];
@@ -122,14 +120,12 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
             return (
               <TableRow key={agent.id} className={isNext ? 'bg-primary/10' : ''}>
                 <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="font-medium">
-                      {agent.name}
-                      {isNext && <Badge variant="secondary" className="ml-2 bg-accent text-accent-foreground">Próximo</Badge>}
-                    </div>
+                  <div className="font-medium">
+                    {agent.name}
+                    {isNext && <Badge variant="secondary" className="ml-2 bg-accent text-accent-foreground">Próximo</Badge>}
                   </div>
                 </TableCell>
-                <TableCell>{formatDistanceToNow(new Date(agent.lastInteractionTime), { addSuffix: true, locale: ptBR })}</TableCell>
+                <TableCell>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
                 <TableCell className="text-center">
                    <div className="flex items-center justify-center gap-2">
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, -1)} disabled={agent.activeClients === 0}>
