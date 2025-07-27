@@ -34,13 +34,14 @@ export async function analyzeAgentPerformance(
   return analyzeAgentPerformanceFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'analyzeAgentPerformancePrompt',
-  input: {
-    schema: AnalyzeAgentPerformanceInputSchema,
+const analyzeAgentPerformanceFlow = ai.defineFlow(
+  {
+    name: 'analyzeAgentPerformanceFlow',
+    inputSchema: AnalyzeAgentPerformanceInputSchema,
+    outputSchema: AnalyzeAgentPerformanceOutputSchema,
   },
-  output: {schema: AnalyzeAgentPerformanceOutputSchema},
-  prompt: `Você é um gerente de lavanderia que fornece insights sobre o desempenho dos atendentes.
+  async ({ agents, query }) => {
+    const prompt = `Você é um gerente de lavanderia que fornece insights sobre o desempenho dos atendentes.
 
   Analise os seguintes dados dos atendentes e responda à consulta do usuário.
 
@@ -52,17 +53,22 @@ const prompt = ai.definePrompt({
   Consulta do Usuário: {{{query}}}
 
   Forneça sugestões específicas e acionáveis para melhorar a eficiência dos atendentes e a satisfação do cliente, referenciando os dados sempre que possível.
-  `,
-});
+  `;
 
-const analyzeAgentPerformanceFlow = ai.defineFlow(
-  {
-    name: 'analyzeAgentPerformanceFlow',
-    inputSchema: AnalyzeAgentPerformanceInputSchema,
-    outputSchema: AnalyzeAgentPerformanceOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
+    const llmResponse = await ai.generate({
+      prompt: prompt,
+      model: 'googleai/gemini-1.5-flash',
+      input: {
+        agents,
+        query,
+      },
+      config: {
+        temperature: 0.5,
+      },
+    });
+
+    const output = llmResponse.text();
+
     return output ?? 'Desculpe, não foi possível analisar a performance neste momento.';
   }
 );
