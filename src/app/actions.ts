@@ -16,8 +16,10 @@ export async function seedAgents(agents: Agent[]) {
   querySnapshot.forEach((doc) => {
     batch.delete(doc.ref);
   });
+  await batch.commit();
 
-  // Add new agents
+  // Add new agents in a new batch
+  const newBatch = writeBatch(db);
   agents.forEach((agent) => {
     const agentDocRef = doc(agentsCollection, agent.id);
     const agentData: Omit<AgentDocument, 'id'> = {
@@ -29,9 +31,9 @@ export async function seedAgents(agents: Agent[]) {
     } else {
       delete agentData.pauseStartTime;
     }
-    batch.set(agentDocRef, agentData);
+    newBatch.set(agentDocRef, agentData);
   });
-  await batch.commit();
+  await newBatch.commit();
   console.log('Database seeded with initial agents.');
 }
 

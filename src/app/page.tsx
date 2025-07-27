@@ -12,6 +12,7 @@ import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 
 const initialAgents: Agent[] = [
     { id: 'agent-1', name: 'Beatriz', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
@@ -45,10 +46,14 @@ export default function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     // We run this to seed the database
-    seedAgents(initialAgents);
+    const doSeed = async () => {
+        await seedAgents(initialAgents);
+    }
+    doSeed();
   }, []);
 
   useEffect(() => {
@@ -64,7 +69,7 @@ export default function Home() {
       }).sort((a,b) => a.name.localeCompare(b.name));
       setAgents(agentsData);
       if(agentsData.length > 0) {
-        setIsLoading(false);
+          setIsLoading(false);
       }
     });
 
@@ -87,6 +92,23 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 95) {
+            clearInterval(timer);
+            return 95;
+          }
+          return prev + 5;
+        });
+      }, 100);
+      return () => clearInterval(timer);
+    } else {
+        setProgress(100);
+    }
+  }, [isLoading]);
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 relative">
@@ -101,9 +123,11 @@ export default function Home() {
         </header>
 
         {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-64 w-full" />
+          <div className="space-y-4 flex flex-col items-center justify-center h-64">
+             <div className="w-1/2 text-center">
+                <p className="mb-2">Carregando atendentes...</p>
+                <Progress value={progress} />
+             </div>
           </div>
         ) : (
           <AgentDashboard agents={agents} />
