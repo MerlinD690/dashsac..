@@ -1,7 +1,4 @@
 
-import { config } from 'dotenv';
-config();
-
-import './flows/assistant';
-import './flows/analyze-agent-performance';
-import './flows/summarize-daily-operations';
+import '@/ai/flows/assistant';
+import '@/ai/flows/analyze-agent-performance';
+import '@/ai/flows/summarize-daily-operations';
