@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,7 +9,7 @@ import { Assistant } from '@/components/Assistant';
 import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
-import { Progress } from '@/components/ui/progress';
+import { seedAgents } from './actions';
 
 const initialAgents: Agent[] = [
     { id: 'agent-1', name: 'Beatriz', lastInteractionTime: new Date().toISOString(), activeClients: 0, isAvailable: true, totalClientsHandled: 0, avgTimePerClient: 0, isOnPause: false },
@@ -43,6 +42,19 @@ function OmoLogo() {
 export default function Home() {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
+  
+  // Seed data once on component mount
+  useEffect(() => {
+    const seedData = async () => {
+        try {
+            await seedAgents(initialAgents);
+            console.log("Agents seeded successfully.");
+        } catch (error) {
+            console.error("Error seeding agents:", error);
+        }
+    };
+    seedData();
+  }, []);
   
   // Listen for real-time updates
   useEffect(() => {
