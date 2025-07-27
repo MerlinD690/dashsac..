@@ -1,0 +1,76 @@
+
+'use server';
+
+import { db } from '@/lib/firebase';
+import { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
+import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+
+const agentsCollection = collection(db, 'agents');
+const pauseLogsCollection = collection(db, 'pauseLogs');
+
+export async function seedAgents(agents: Agent[]) {
+  const batch = writeBatch(db);
+  const querySnapshot = await getDocs(agentsCollection);
+  if (querySnapshot.empty) {
+    agents.forEach((agent) => {
+      const agentDocRef = doc(agentsCollection, agent.id);
+      const agentData: Omit<AgentDocument, 'id'> = {
+        ...agent,
+        lastInteractionTime: Timestamp.fromDate(new Date(agent.lastInteractionTime)),
+      };
+      if (agent.pauseStartTime) {
+          agentData.pauseStartTime = Timestamp.fromDate(new Date(agent.pauseStartTime));
+      } else {
+        delete agentData.pauseStartTime;
+      }
+      batch.set(agentDocRef, agentData);
+    });
+    await batch.commit();
+    console.log('Database seeded with initial agents.');
+  }
+}
+
+export async function updateAgent(agentId: string, data: Partial<Agent>) {
+  const agentRef = doc(db, 'agents', agentId);
+  
+  const updateData: Partial<AgentDocument> = { ...data };
+  if(data.lastInteractionTime) {
+    updateData.lastInteractionTime = Timestamp.fromDate(new Date(data.lastInteractionTime))
+  }
+   if (data.pauseStartTime === null) {
+    // This is a special case to remove the field
+    // @ts-ignore
+    updateData.pauseStartTime = null;
+  } else if (data.pauseStartTime) {
+    updateData.pauseStartTime = Timestamp.fromDate(new Date(data.pauseStartTime));
+  }
+
+  await updateDoc(agentRef, updateData);
+}
+
+export async function addPauseLog(log: Omit<PauseLog, 'id'>) {
+    const logDocument: Omit<PauseLogDocument, 'id'> = {
+        ...log,
+        pauseStartTime: Timestamp.fromDate(new Date(log.pauseStartTime)),
+        pauseEndTime: Timestamp.fromDate(new Date(log.pauseEndTime)),
+    }
+  await addDoc(pauseLogsCollection, logDocument);
+}
+
+export async function getPauseLogsInRange(startDate: Date, endDate: Date): Promise<PauseLog[]> {
+    const q = query(
+        pauseLogsCollection, 
+        where('pauseStartTime', '>=', Timestamp.fromDate(startDate)),
+        where('pauseStartTime', '<=', Timestamp.fromDate(endDate))
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => {
+        const data = doc.data() as PauseLogDocument;
+        return {
+            id: doc.id,
+            ...data,
+            pauseStartTime: data.pauseStartTime.toDate().toISOString(),
+            pauseEndTime: data.pauseEndTime.toDate().toISOString(),
+        }
+    });
+}
