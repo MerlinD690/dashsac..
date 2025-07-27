@@ -9,12 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog } from '@/lib/types';
-import { Circle, Coffee, Minus, Plus } from 'lucide-react';
+import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 
 interface AgentDashboardProps {
   agents: Agent[];
@@ -81,10 +80,10 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
   };
 
 
-  const getStatus = (agent: Agent): { text: string; color: string; icon: React.ReactNode } => {
-    if (agent.isOnPause) return { text: 'Em Pausa', color: 'bg-yellow-500', icon: <Coffee className="h-2 w-2" /> };
-    if (agent.isAvailable) return { text: 'Disponível', color: 'bg-green-500', icon: <Circle className="h-2 w-2 fill-current" /> };
-    return { text: 'Indisponível', color: 'bg-red-500', icon: <Circle className="h-2 w-2 fill-current" /> };
+  const getStatus = (agent: Agent): { text: string; icon: React.ReactNode; className: string } => {
+    if (agent.isOnPause) return { text: 'Em Pausa', icon: <Coffee className="h-4 w-4" />, className: 'text-yellow-600' };
+    if (agent.isAvailable) return { text: 'Disponível', icon: <UserCheck className="h-4 w-4" />, className: 'text-green-600' };
+    return { text: 'Indisponível', icon: <UserX className="h-4 w-4" />, className: 'text-red-600' };
   };
 
   const sortedAgents = [...agents].sort((a, b) => a.name.localeCompare(b.name));
@@ -125,9 +124,9 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
                     </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${status.color}`}></span>
-                    {status.text}
+                  <div className={`flex items-center gap-2 font-medium ${status.className}`}>
+                    {status.icon}
+                    <span>{status.text}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
