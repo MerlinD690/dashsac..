@@ -52,7 +52,7 @@ export function Assistant({ agents, pauseLogs }: AssistantProps) {
             const result = await summarizeDailyOperations(summaryData);
             response = result.summary;
         } else if (prompt === 'Melhor Performance') {
-            const performanceData: AnalyzeAgentPerformanceInput = { agents, query: 'Qual atendente teve a melhor performance hoje e por quê?' };
+            const performanceData: AnalyzeAgentPerformanceInput = { agents, query: 'Qual atendente teve o maior número de atendimentos e qual seu tempo médio?' };
             response = await analyzeAgentPerformance(performanceData);
         } else {
             const assistantInput: AssistantInput = { history: newMessages, agents };
