@@ -17,23 +17,10 @@ import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 
 // Function to play a simple beep sound
 function playNotificationSound() {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  if (!audioContext) return;
-
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-
-  oscillator.type = 'sine';
-  oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A slightly higher pitch (A5 note)
-  gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-  
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.2);
-
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.25);
+    const audio = document.getElementById('notification-sound') as HTMLAudioElement;
+    if (audio) {
+      audio.play().catch(error => console.error("Error playing sound:", error));
+    }
 }
 
 
@@ -114,63 +101,66 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
   });
 
   return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Atendente</TableHead>
-            <TableHead>Última Interação</TableHead>
-            <TableHead className="text-center">Clientes Ativos</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-center">Pausa</TableHead>
-            <TableHead className="text-right">Disponibilidade</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedAgents.map((agent) => {
-            const status = getStatus(agent);
-            return (
-              <TableRow key={agent.id}>
-                <TableCell>
-                  <div className="font-medium">
-                    {agent.name}
-                  </div>
-                </TableCell>
-                <TableCell>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
-                <TableCell className="text-center">
-                   <div className="flex items-center justify-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
-                            <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-4 font-bold text-lg">{agent.activeClients}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
-                            <Plus className="h-4 w-4" />
-                        </Button>
+    <>
+      <audio id="notification-sound" src="/emergence.mp3" preload="auto"></audio>
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Atendente</TableHead>
+              <TableHead>Última Interação</TableHead>
+              <TableHead className="text-center">Clientes Ativos</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Pausa</TableHead>
+              <TableHead className="text-right">Disponibilidade</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedAgents.map((agent) => {
+              const status = getStatus(agent);
+              return (
+                <TableRow key={agent.id}>
+                  <TableCell>
+                    <div className="font-medium">
+                      {agent.name}
                     </div>
-                </TableCell>
-                <TableCell>
-                  <div className={`flex items-center gap-2 font-medium ${status.className}`}>
-                    {status.icon}
-                    <span>{status.text}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0}>
-                    <Coffee className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Switch
-                    checked={agent.isAvailable}
-                    onCheckedChange={(checked) => handleToggleAvailability(agent, checked)}
-                    disabled={agent.activeClients > 0 || agent.isOnPause}
-                  />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+                  </TableCell>
+                  <TableCell>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
+                              <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-4 font-bold text-lg">{agent.activeClients}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
+                              <Plus className="h-4 w-4" />
+                          </Button>
+                      </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className={`flex items-center gap-2 font-medium ${status.className}`}>
+                      {status.icon}
+                      <span>{status.text}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0}>
+                      <Coffee className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Switch
+                      checked={agent.isAvailable}
+                      onCheckedChange={(checked) => handleToggleAvailability(agent, checked)}
+                      disabled={agent.activeClients > 0 || agent.isOnPause}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }
