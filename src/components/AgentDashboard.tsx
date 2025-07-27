@@ -19,24 +19,21 @@ import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 function playNotificationSound() {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (!audioContext) return;
-
+    
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-
     const now = audioContext.currentTime;
-    
-    // Configure oscillator
-    oscillator.type = 'sine'; // A clean, pure tone
-    oscillator.frequency.setValueAtTime(600, now); // Starting frequency
-    oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.1); // Ramp up quickly
 
-    // Configure gain (volume) for a short "pop"
-    gainNode.gain.setValueAtTime(0.5, now);
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, now);
+    oscillator.frequency.linearRampToValueAtTime(1200, now + 0.05);
+
+    gainNode.gain.setValueAtTime(0.3, now);
     gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
-    // Connect nodes and start
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
+    
     oscillator.start(now);
     oscillator.stop(now + 0.2);
 }
@@ -86,14 +83,16 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
 
     const isOnPause = !agent.isOnPause;
     const updates: Partial<Agent> = { isOnPause };
+    const now = new Date().toISOString();
 
     if (isOnPause) {
-        updates.pauseStartTime = new Date().toISOString();
+        updates.pauseStartTime = now;
+        updates.lastInteractionTime = now;
     } else if(agent.pauseStartTime) {
         onAddPauseLog({
             agentName: agent.name,
             pauseStartTime: agent.pauseStartTime,
-            pauseEndTime: new Date().toISOString(),
+            pauseEndTime: now,
         });
         updates.pauseStartTime = undefined;
     }
@@ -111,9 +110,6 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
   const sortedAgents = [...agents].sort((a, b) => {
     if (a.isAvailable !== b.isAvailable) {
         return a.isAvailable ? -1 : 1;
-    }
-    if (a.isOnPause !== b.isOnPause) {
-        return a.isOnPause ? 1 : -1;
     }
     return a.name.localeCompare(b.name);
   });
