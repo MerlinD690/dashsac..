@@ -27,11 +27,10 @@ function playNotificationSound() {
   gainNode.connect(audioContext.destination);
 
   oscillator.type = 'sine';
-  gainNode.gain.setValueAtTime(0.6, audioContext.currentTime);
+  gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+  oscillator.frequency.setValueAtTime(700, audioContext.currentTime);
 
-  // Start with a higher pitch and drop it quickly for a "blip" sound
-  oscillator.frequency.setValueAtTime(900, audioContext.currentTime);
-  oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.15);
+  // Gentle fade out for a cleaner sound
   gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.15);
   
   oscillator.start(audioContext.currentTime);
@@ -39,7 +38,7 @@ function playNotificationSound() {
 }
 
 
-export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDashboardProps) {
+export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agents: Agent[]; onUpdateAgent: (agentId: string, updates: Partial<Agent>) => void; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
   const { toast } = useToast();
 
   const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
