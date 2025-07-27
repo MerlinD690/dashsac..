@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onSnapshot, collection, writeBatch, getDocs } from 'firebase/firestore';
+import { onSnapshot, collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
