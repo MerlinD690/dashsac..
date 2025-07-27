@@ -102,7 +102,7 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
 
   return (
     <>
-      <audio id="notification-sound" src="/emergence.mp3" preload="auto"></audio>
+      <audio id="notification-sound" src="/notification-tone-swift-gesture.mp3" preload="auto"></audio>
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
