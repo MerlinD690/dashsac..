@@ -6,7 +6,7 @@ import { CornerDownLeft, Bot, Sparkles, LoaderCircle, Mic } from 'lucide-react';
 import { runFlow } from '@genkit-ai/next/client';
 import type { MessageData } from 'genkit/experimental/ai';
 import { z } from 'zod';
-import { assistantFlow } from '@/ai/flows/assistant';
+import { assistant } from '@/ai/flows/assistant';
 import { summarizeDailyOperations, SummarizeDailyOperationsInput } from '@/ai/flows/summarize-daily-operations';
 import { analyzeAgentPerformance, AnalyzeAgentPerformanceInput } from '@/ai/flows/analyze-agent-performance';
 
@@ -48,21 +48,18 @@ export function Assistant({ agents, pauseLogs }: AssistantProps) {
     try {
         let response: string | undefined;
 
-        if (prompt === 'Resumo Geral') {
+        if (userMessage.toLowerCase().includes('resumo geral')) {
             const summaryData: SummarizeDailyOperationsInput = { agentsData: agents, pauseLogs: pauseLogs };
             const result = await summarizeDailyOperations(summaryData);
             response = result.summary;
         } else {
-             // For "Melhor Performance", "Quem está em pausa?", and custom input
-            const assistantInput: AssistantInput = { history: newMessages, agents: agents };
+             const assistantInput: AssistantInput = { history: newMessages, agents: agents };
 
-            // When a quick prompt is used, we need to construct a history that reflects that.
-            // The latest message should be the one from the prompt.
             if (prompt) {
                 assistantInput.history = [...messages, newUserMessage];
             }
             
-            response = await runFlow(assistantFlow, assistantInput);
+            response = await runFlow(assistant, assistantInput);
         }
 
         if(response) {

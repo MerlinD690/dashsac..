@@ -6,6 +6,9 @@ import { z } from 'zod';
 import { MessageData } from 'genkit/experimental/ai';
 import { Agent, AssistantInputSchema, AssistantInput } from '@/lib/types';
 
+export async function assistant(input: AssistantInput): Promise<string> {
+  return assistantFlow(input);
+}
 
 export const assistantFlow = ai.defineFlow(
   {
