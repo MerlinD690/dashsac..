@@ -17,10 +17,28 @@ import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 
 // Function to play a simple beep sound
 function playNotificationSound() {
-    const audio = document.getElementById('notification-sound') as HTMLAudioElement;
-    if (audio) {
-      audio.play().catch(error => console.error("Error playing sound:", error));
-    }
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (!audioContext) return;
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    const now = audioContext.currentTime;
+    
+    // Configure oscillator
+    oscillator.type = 'sine'; // A clean, pure tone
+    oscillator.frequency.setValueAtTime(600, now); // Starting frequency
+    oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.1); // Ramp up quickly
+
+    // Configure gain (volume) for a short "pop"
+    gainNode.gain.setValueAtTime(0.5, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+    // Connect nodes and start
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.2);
 }
 
 
@@ -102,7 +120,6 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
 
   return (
     <>
-      <audio id="notification-sound" src="/notification-tone-swift-gesture.mp3" preload="auto"></audio>
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
