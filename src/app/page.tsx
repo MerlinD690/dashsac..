@@ -73,11 +73,13 @@ export default function Home() {
              <p className="mt-4 text-muted-foreground">Carregando atendentes...</p>
           </div>
         ) : (
-          <AgentDashboard 
-            agents={agents}
-            onUpdateAgent={handleUpdateAgent}
-            onAddPauseLog={handleAddPauseLog}
-          />
+          <ClientOnly>
+            <AgentDashboard 
+              agents={agents}
+              onUpdateAgent={handleUpdateAgent}
+              onAddPauseLog={handleAddPauseLog}
+            />
+          </ClientOnly>
         )}
         
         <ClientOnly>
