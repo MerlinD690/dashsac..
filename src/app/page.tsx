@@ -47,14 +47,18 @@ export default function Home() {
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [seeded, setSeeded] = useState(false);
 
   useEffect(() => {
     // We run this to seed the database
     const doSeed = async () => {
         await seedAgents(initialAgents);
+        setSeeded(true);
     }
-    doSeed();
-  }, []);
+    if (!seeded) {
+        doSeed();
+    }
+  }, [seeded]);
 
   useEffect(() => {
     const unsubscribeAgents = onSnapshot(collection(db, 'agents'), (snapshot) => {
