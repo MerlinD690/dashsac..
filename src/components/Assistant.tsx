@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Agent, PauseLog, AssistantInputSchema, AssistantInput } from '@/lib/types';
+import { Agent, PauseLog, AssistantInput } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 type AssistantProps = {
@@ -47,15 +47,21 @@ export function Assistant({ agents, pauseLogs }: AssistantProps) {
 
     try {
         let response: string | undefined;
+
         if (prompt === 'Resumo Geral') {
             const summaryData: SummarizeDailyOperationsInput = { agentsData: agents, pauseLogs: pauseLogs };
             const result = await summarizeDailyOperations(summaryData);
             response = result.summary;
-        } else if (prompt === 'Melhor Performance') {
-            const performanceData: AnalyzeAgentPerformanceInput = { agents, query: 'Qual atendente teve o maior número de atendimentos e qual seu tempo médio?' };
-            response = await analyzeAgentPerformance(performanceData);
         } else {
-            const assistantInput: AssistantInput = { history: newMessages, agents };
+             // For "Melhor Performance", "Quem está em pausa?", and custom input
+            const assistantInput: AssistantInput = { history: newMessages, agents: agents };
+
+            // When a quick prompt is used, we need to construct a history that reflects that.
+            // The latest message should be the one from the prompt.
+            if (prompt) {
+                assistantInput.history = [...messages, newUserMessage];
+            }
+            
             response = await runFlow(assistantFlow, assistantInput);
         }
 
