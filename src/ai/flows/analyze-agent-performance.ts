@@ -40,18 +40,18 @@ const prompt = ai.definePrompt({
     schema: AnalyzeAgentPerformanceInputSchema,
   },
   output: {schema: AnalyzeAgentPerformanceOutputSchema},
-  prompt: `You are a laundry service manager providing insights on agent performance.
+  prompt: `Você é um gerente de lavanderia que fornece insights sobre o desempenho dos atendentes.
 
-  Analyze the following agent data and respond to the user query.
+  Analise os seguintes dados dos atendentes e responda à consulta do usuário.
 
-  Agent Data:
+  Dados dos Atendentes:
   {{#each agents}}
-  - Name: {{name}}, Last Interaction: {{lastInteractionTime}}, Active Clients: {{activeClients}}, Total Clients Handled: {{totalClientsHandled}}, Avg Time Per Client: {{avgTimePerClient}}, Is Available: {{isAvailable}}, Is On Pause: {{isOnPause}}
+  - Nome: {{name}}, Última Interação: {{lastInteractionTime}}, Clientes Ativos: {{activeClients}}, Total de Clientes Atendidos: {{totalClientsHandled}}, Tempo Médio por Cliente: {{avgTimePerClient}}, Está Disponível: {{isAvailable}}, Está em Pausa: {{isOnPause}}
   {{/each}}
 
-  User Query: {{{query}}}
+  Consulta do Usuário: {{{query}}}
 
-  Provide specific, actionable suggestions to improve agent efficiency and customer satisfaction, referencing data where possible.
+  Forneça sugestões específicas e acionáveis para melhorar a eficiência dos atendentes e a satisfação do cliente, referenciando os dados sempre que possível.
   `,
 });
 
