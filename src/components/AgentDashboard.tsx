@@ -15,36 +15,27 @@ import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog } from '@/lib/types';
 import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 
-interface AgentDashboardProps {
-  agents: Agent[];
-  onUpdateAgent: (agentId: string, updates: Partial<Agent>) => void;
-  onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void;
-}
-
 // Function to play a simple beep sound
 function playNotificationSound() {
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   if (!audioContext) return;
 
-  function createTone(frequency: number, startTime: number, duration: number) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
 
-    oscillator.type = 'sine'; // Sine wave is often more pleasant
-    oscillator.frequency.setValueAtTime(frequency, startTime);
-    gainNode.gain.setValueAtTime(0.4, startTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + duration); // fade out
+  oscillator.type = 'sine';
+  gainNode.gain.setValueAtTime(0.6, audioContext.currentTime);
 
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
-  }
+  // Start with a higher pitch and drop it quickly for a "blip" sound
+  oscillator.frequency.setValueAtTime(900, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.15);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.15);
   
-  const now = audioContext.currentTime;
-  createTone(523.25, now, 0.15); // C5
-  createTone(659.25, now + 0.2, 0.15); // E5
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.2);
 }
 
 
