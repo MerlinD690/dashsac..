@@ -47,12 +47,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // We run this only once to seed the database
-    const seeded = sessionStorage.getItem('seeded');
-    if (!seeded) {
-        seedAgents(initialAgents);
-        sessionStorage.setItem('seeded', 'true');
-    }
+    // We run this to seed the database
+    seedAgents(initialAgents);
   }, []);
 
   useEffect(() => {
