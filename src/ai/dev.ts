@@ -2,4 +2,6 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/assistant.ts';
+import './flows/assistant';
+import './flows/analyze-agent-performance';
+import './flows/summarize-daily-operations';
