@@ -29,7 +29,8 @@ export async function seedAgents(agents: Agent[]) {
     if (agent.pauseStartTime) {
         agentData.pauseStartTime = Timestamp.fromDate(new Date(agent.pauseStartTime));
     } else {
-      delete agentData.pauseStartTime;
+        // Make sure we don't send undefined to Firestore
+        delete agentData.pauseStartTime;
     }
     newBatch.set(agentDocRef, agentData);
   });
@@ -41,16 +42,24 @@ export async function seedAgents(agents: Agent[]) {
 export async function updateAgent(agentId: string, data: Partial<Agent>) {
   const agentRef = doc(db, 'agents', agentId);
   
-  const updateData: Partial<AgentDocument> = { ...data };
-  if(data.lastInteractionTime) {
-    updateData.lastInteractionTime = Timestamp.fromDate(new Date(data.lastInteractionTime))
+  const updateData: { [key: string]: any } = { ...data };
+  
+  if (data.lastInteractionTime) {
+    updateData.lastInteractionTime = Timestamp.fromDate(new Date(data.lastInteractionTime));
   }
-   if (data.pauseStartTime === null) {
-    // This is a special case to remove the field
-    // @ts-ignore
-    updateData.pauseStartTime = null;
-  } else if (data.pauseStartTime) {
-    updateData.pauseStartTime = Timestamp.fromDate(new Date(data.pauseStartTime));
+  
+  // Handle pauseStartTime specifically to allow setting it to null (for deletion)
+  if (data.hasOwnProperty('pauseStartTime')) {
+    if (data.pauseStartTime === null) {
+      updateData.pauseStartTime = null; // Firestore will remove the field
+    } else if (data.pauseStartTime) {
+      updateData.pauseStartTime = Timestamp.fromDate(new Date(data.pauseStartTime));
+    }
+  }
+
+  // Remove id from data to prevent it from being written to the document
+  if ('id' in updateData) {
+    delete updateData.id;
   }
 
   await updateDoc(agentRef, updateData);
