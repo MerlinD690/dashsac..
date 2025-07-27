@@ -25,17 +25,17 @@ function playNotificationSound() {
     const now = audioContext.currentTime;
 
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, now);
-    oscillator.frequency.linearRampToValueAtTime(1200, now + 0.05);
+    oscillator.frequency.setValueAtTime(440, now);
+    oscillator.frequency.linearRampToValueAtTime(880, now + 0.1);
 
     gainNode.gain.setValueAtTime(0.3, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
 
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
     oscillator.start(now);
-    oscillator.stop(now + 0.2);
+    oscillator.stop(now + 0.3);
 }
 
 
@@ -46,14 +46,24 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
     const newCount = agent.activeClients + change;
     if (newCount < 0 || newCount > 5) return;
 
+    const now = new Date();
+    const lastInteraction = new Date(agent.lastInteractionTime);
+    const timeDiffMinutes = (now.getTime() - lastInteraction.getTime()) / (1000 * 60);
+
     const updates: Partial<Agent> = {
       activeClients: newCount,
-      lastInteractionTime: new Date().toISOString(),
+      lastInteractionTime: now.toISOString(),
     };
     if (change === 1) {
-      updates.totalClientsHandled = agent.totalClientsHandled + 1;
-      // Simple avg time logic, can be improved
-      updates.avgTimePerClient = (agent.avgTimePerClient * agent.totalClientsHandled + 15) / (agent.totalClientsHandled + 1);
+      const newTotalClientsHandled = agent.totalClientsHandled + 1;
+      // Recalculate average time per client. This is a simplified logic.
+      // It assumes the time since last interaction was for a single client if activeClients was > 0.
+      // A more robust implementation might track each client session.
+      const totalMinutesSoFar = agent.avgTimePerClient * agent.totalClientsHandled;
+      const newAvgTimePerClient = (totalMinutesSoFar + timeDiffMinutes) / newTotalClientsHandled;
+      
+      updates.totalClientsHandled = newTotalClientsHandled;
+      updates.avgTimePerClient = newAvgTimePerClient;
       playNotificationSound();
     }
     onUpdateAgent(agent.id, updates);
@@ -82,12 +92,11 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
     }
 
     const isOnPause = !agent.isOnPause;
-    const updates: Partial<Agent> = { isOnPause };
     const now = new Date().toISOString();
+    const updates: Partial<Agent> = { isOnPause, lastInteractionTime: now };
 
     if (isOnPause) {
         updates.pauseStartTime = now;
-        updates.lastInteractionTime = now;
     } else if(agent.pauseStartTime) {
         onAddPauseLog({
             agentName: agent.name,
@@ -109,8 +118,12 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
 
   const sortedAgents = [...agents].sort((a, b) => {
     if (a.isAvailable !== b.isAvailable) {
-        return a.isAvailable ? -1 : 1;
+      return a.isAvailable ? -1 : 1;
     }
+    // Keep paused agents in their sorted name position
+    if (a.isOnPause && !b.isOnPause) return a.name.localeCompare(b.name);
+    if (!a.isOnPause && b.isOnPause) return a.name.localeCompare(b.name);
+    
     return a.name.localeCompare(b.name);
   });
 
