@@ -86,7 +86,12 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: AgentDa
     return { text: 'Indisponível', icon: <UserX className="h-4 w-4" />, className: 'text-red-600' };
   };
 
-  const sortedAgents = [...agents].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedAgents = [...agents].sort((a, b) => {
+    if (a.isAvailable !== b.isAvailable) {
+      return a.isAvailable ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
