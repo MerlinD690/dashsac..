@@ -3,7 +3,7 @@
 
 import { db } from '@/lib/firebase';
 import { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
-import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 const agentsCollection = collection(db, 'agents');
 const pauseLogsCollection = collection(db, 'pauseLogs');
@@ -11,24 +11,30 @@ const pauseLogsCollection = collection(db, 'pauseLogs');
 export async function seedAgents(agents: Agent[]) {
   const batch = writeBatch(db);
   const querySnapshot = await getDocs(agentsCollection);
-  if (querySnapshot.empty) {
-    agents.forEach((agent) => {
-      const agentDocRef = doc(agentsCollection, agent.id);
-      const agentData: Omit<AgentDocument, 'id'> = {
-        ...agent,
-        lastInteractionTime: Timestamp.fromDate(new Date(agent.lastInteractionTime)),
-      };
-      if (agent.pauseStartTime) {
-          agentData.pauseStartTime = Timestamp.fromDate(new Date(agent.pauseStartTime));
-      } else {
-        delete agentData.pauseStartTime;
-      }
-      batch.set(agentDocRef, agentData);
-    });
-    await batch.commit();
-    console.log('Database seeded with initial agents.');
-  }
+
+  // Delete existing agents to ensure a fresh seed
+  querySnapshot.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+
+  // Add new agents
+  agents.forEach((agent) => {
+    const agentDocRef = doc(agentsCollection, agent.id);
+    const agentData: Omit<AgentDocument, 'id'> = {
+      ...agent,
+      lastInteractionTime: Timestamp.fromDate(new Date(agent.lastInteractionTime)),
+    };
+    if (agent.pauseStartTime) {
+        agentData.pauseStartTime = Timestamp.fromDate(new Date(agent.pauseStartTime));
+    } else {
+      delete agentData.pauseStartTime;
+    }
+    batch.set(agentDocRef, agentData);
+  });
+  await batch.commit();
+  console.log('Database seeded with initial agents.');
 }
+
 
 export async function updateAgent(agentId: string, data: Partial<Agent>) {
   const agentRef = doc(db, 'agents', agentId);

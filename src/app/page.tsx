@@ -47,7 +47,12 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    seedAgents(initialAgents);
+    // We run this only once to seed the database
+    const seeded = sessionStorage.getItem('seeded');
+    if (!seeded) {
+        seedAgents(initialAgents);
+        sessionStorage.setItem('seeded', 'true');
+    }
   }, []);
 
   useEffect(() => {
@@ -62,7 +67,9 @@ export default function Home() {
         } as Agent;
       }).sort((a,b) => a.name.localeCompare(b.name));
       setAgents(agentsData);
-      setIsLoading(false);
+      if(agentsData.length > 0) {
+        setIsLoading(false);
+      }
     });
 
     const unsubscribePauseLogs = onSnapshot(collection(db, 'pauseLogs'), (snapshot) => {
