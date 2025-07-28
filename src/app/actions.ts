@@ -71,10 +71,11 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 
 async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
-    const apiToken = process.env.NEXT_PUBLIC_TOMTICKET_API_TOKEN;
+    // Use the non-prefixed variable for server-side code.
+    const apiToken = process.env.TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
-        throw new Error('API token (NEXT_PUBLIC_TOMTICKET_API_TOKEN) is not configured in server environment.');
+        throw new Error('API token (TOMTICKET_API_TOKEN) is not configured in server environment.');
     }
 
     let allChats: TomTicketChat[] = [];
@@ -109,6 +110,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
             
             if (data.success && data.data && data.data.length > 0) {
                 allChats = allChats.concat(data.data);
+                // The API documentation indicates 'next_page' tells us if there's more data.
                 if (data.next_page) {
                     page = data.next_page;
                     // Add a small delay to avoid rate limiting
@@ -141,6 +143,7 @@ export async function syncTomTicketData() {
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
+      // Safe navigation: only count if operator and name exist.
       const agentName = chat.operator?.name; 
       if (agentName) {
         agentChatCounts[agentName] = (agentChatCounts[agentName] || 0) + 1;
