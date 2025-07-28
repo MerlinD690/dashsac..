@@ -100,7 +100,7 @@ export default function Home() {
           </ClientOnly>
         )}
         
-        <footer className="fixed bottom-4 right-8 md:bottom-8 md:right-10 z-0">
+        <footer className="fixed bottom-4 right-8 md:bottom-8 md:right-10 z-50">
             <ClientOnly>
                 <RealTimeClock />
             </ClientOnly>
