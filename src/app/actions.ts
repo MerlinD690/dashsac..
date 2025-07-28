@@ -197,13 +197,15 @@ export async function syncTomTicketData() {
         activeChats: activeChats.length,
         agentChatCounts,
         updatesMade,
-        updateLog
+        updateLog,
+        // Adicionando uma amostra dos dados para depuração
+        dataSample: allChats.slice(0, 5) 
     };
   } catch (error) {
     console.error("[CRITICAL] SERVER_SYNC: Failed to sync TomTicket data:", error);
     if (error instanceof Error) {
-        return { success: false, message: error.message };
+        return { success: false, message: error.message, dataSample: [] };
     }
-    return { success: false, message: "An unknown error occurred during sync" };
+    return { success: false, message: "An unknown error occurred during sync", dataSample: [] };
   }
 }

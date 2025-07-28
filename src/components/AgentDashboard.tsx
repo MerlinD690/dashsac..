@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -75,7 +76,8 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
       console.log('SYNC_CLIENT: Requesting sync with TomTicket...');
       try {
         const result = await syncTomTicketData();
-        console.log('SYNC_CLIENT: Sync finished. Result:', result);
+        // Log detalhado para depuração no console do navegador
+        console.log('SYNC_CLIENT: Sync finished. Result:', result); 
         
         if (result.success) {
           if (syncError) { // If there was an error before, show success message
