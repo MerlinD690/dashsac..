@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { Coffee, UserCheck, UserX, Lock, AlertTriangle } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
 import ClientOnly from './ClientOnly';
-import { addPauseLog, updateAgent, syncTomTicketData } from '@/app/actions';
+import { addPauseLog, updateAgent } from '@/app/actions';
 import { useState, useEffect } from 'react';
 
 const AVAILABILITY_PASSWORD = "150121";
@@ -61,65 +61,12 @@ const PauseTimer = ({ startTime }: { startTime: string }) => {
 };
 
 
-export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: Agent[]; setAgents: React.Dispatch<React.SetStateAction<Agent[]>>, onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
+export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgents: React.Dispatch<React.SetStateAction<Agent[]>> }) {
   const { toast } = useToast();
   
   const [password, setPassword] = useState("");
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [agentToUpdate, setAgentToUpdate] = useState<Agent | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-  useEffect(() => {
-    const runSync = async () => {
-      console.log('SYNC_CLIENT: Requesting sync with TomTicket...');
-      try {
-        const result = await syncTomTicketData();
-        // Log detalhado para depuração no console do navegador
-        console.log('SYNC_CLIENT: Sync finished. Result:', result); 
-        
-        if (result.success) {
-          if (syncError) { // If there was an error before, show success message
-             toast({
-                title: "Sincronização Restaurada",
-                description: "A conexão com o TomTicket foi restaurada com sucesso.",
-              });
-          }
-          setSyncError(null);
-        } else {
-          // Only show toast if the error message is new
-          if (syncError !== result.message) {
-              toast({
-                variant: 'destructive',
-                title: 'Erro de Sincronização',
-                description: `Falha ao buscar dados do TomTicket. A contagem de clientes pode estar desatualizada. (${result.message})`,
-              });
-              setSyncError(result.message || 'Erro desconhecido');
-          }
-        }
-      } catch (error: any) {
-        console.error('SYNC_CLIENT: Critical error calling sync action.', error);
-        if (syncError !== error.message) {
-            toast({
-              variant: 'destructive',
-              title: 'Erro de Sincronização Crítico',
-              description: `Ocorreu um erro inesperado: ${error.message}`,
-            });
-            setSyncError(error.message);
-        }
-      }
-    };
-
-    // Run immediately on component mount
-    runSync();
-
-    // Then run every 30 seconds
-    const intervalId = setInterval(runSync, 30000); // 30 seconds interval
-
-    // Cleanup on component unmount
-    return () => clearInterval(intervalId);
-  }, [toast, syncError]);
-
 
   const findNextBestAgent = (agents: Agent[]): string | null => {
     const availableAgents = agents
@@ -332,22 +279,6 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
           </TableBody>
         </Table>
         <div className="flex items-center justify-between p-2 border-t">
-            {syncError && (
-              <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className='flex items-center gap-2 text-destructive text-xs ml-2'>
-                            <AlertTriangle className="h-4 w-4" />
-                            <span>Erro de Sincronia</span>
-                        </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Falha na conexão com a API do TomTicket.</p>
-                        <p className='text-xs text-muted-foreground'>{syncError}</p>
-                    </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
             <div className='flex-grow'></div>
             <ClientOnly>
                 <RealTimeClock />

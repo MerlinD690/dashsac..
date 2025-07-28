@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Agent, PauseLog } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
 import { ExportButton } from '@/components/ExportButton';
@@ -11,8 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { clearAndSeedAgents } from './actions';
+import { RefreshCw, Zap } from 'lucide-react';
+import { clearAndSeedAgents, syncTomTicketData } from './actions';
 import { seedAgentsData } from '@/lib/seed-data';
 
 function OmoLogo() {
@@ -34,9 +34,11 @@ export default function Home() {
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     try {
       // Listener for Agents data
@@ -95,13 +97,8 @@ export default function Home() {
         setError(e.message);
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [isLoading, toast]);
   
-  const handleAddPauseLog = (log: Omit<PauseLog, 'id'>) => {
-      // With Firestore, we don't need to manage pause logs in local state
-      // as they are written directly to the DB by the server action and listened to by onSnapshot
-  };
-
   const handleSeedData = async () => {
     setIsSeeding(true);
     try {
@@ -121,6 +118,41 @@ export default function Home() {
       setIsSeeding(false);
     }
   };
+
+  const handleSyncData = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const result = await syncTomTicketData();
+      if (result.success) {
+        toast({
+          title: "Sincronização Concluída",
+          description: `Dados do TomTicket atualizados. ${result.updatesMade} atendentes sincronizados.`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Sincronização',
+          description: result.message || 'Ocorreu um erro desconhecido.',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro Crítico de Sincronização',
+        description: error.message,
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [toast]);
+
+  // Initial sync on load
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  useEffect(() => {
+    if (!isLoading) {
+      handleSyncData();
+    }
+  }, [isLoading, handleSyncData]);
 
 
   if (error) {
@@ -146,6 +178,10 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button onClick={handleSyncData} variant="outline" size="sm" disabled={isSyncing}>
+              <Zap className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}
+            </Button>
             <Button onClick={handleSeedData} variant="outline" size="sm" disabled={isSeeding}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isSeeding ? 'animate-spin' : ''}`} />
               {isSeeding ? 'Resetando...' : 'Resetar Dados'}
@@ -170,7 +206,6 @@ export default function Home() {
             <AgentDashboard 
               agents={agents}
               setAgents={setAgents}
-              onAddPauseLog={handleAddPauseLog}
             />
           </ClientOnly>
         )}
