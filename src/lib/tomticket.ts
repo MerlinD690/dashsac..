@@ -5,11 +5,11 @@ import { subMinutes, format } from 'date-fns';
 const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
 
 export async function getActiveChats(): Promise<TomTicketApiResponse> {
-  const apiToken = process.env.TOMTICKET_API_TOKEN;
+  const apiToken = process.env.NEXT_PUBLIC_TOMTICKET_API_TOKEN;
 
   if (!apiToken) {
-    console.error("TOMTICKET_API_TOKEN não está configurado. Verifique o arquivo .env ou as configurações de ambiente da Vercel.");
-    throw new Error('TOMTICKET_API_TOKEN não está configurado nas variáveis de ambiente.');
+    console.error("NEXT_PUBLIC_TOMTICKET_API_TOKEN não está configurado. Verifique o arquivo .env ou as configurações de ambiente da Vercel.");
+    throw new Error('NEXT_PUBLIC_TOMTICKET_API_TOKEN não está configurado nas variáveis de ambiente.');
   }
 
   try {
