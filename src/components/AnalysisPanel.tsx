@@ -33,7 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { addDailyReport, getDailyReports } from '@/app/actions';
 
 // Hardcoded password for the analysis feature
-const ANALYSIS_PASSWORD = "Omo123456789.";
+const ANALYSIS_PASSWORD = "150121";
 
 function AnalysisResult({ result, totalClients }: { result: AnalysisOutput, totalClients: number }) {
   return (
@@ -215,6 +215,7 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
   const handleAnalysis = async () => {
     setIsLoading(true);
     setAnalysisResult(null);
+
     try {
       const agentsWithPauseData: AgentWithPauseData[] = agents.map(agent => ({
         ...agent,

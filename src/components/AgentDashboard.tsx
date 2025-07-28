@@ -31,7 +31,7 @@ import ClientOnly from './ClientOnly';
 import { addPauseLog, updateAgent } from '@/app/actions';
 import { useState, useEffect } from 'react';
 
-const AVAILABILITY_PASSWORD = "Omo123456789.";
+const AVAILABILITY_PASSWORD = "150121";
 
 // Function to play a simple beep sound
 function playNotificationSound() {
