@@ -114,7 +114,7 @@ export default function Home() {
     handleSync();
 
     // Set up interval for subsequent syncs
-    const intervalId = setInterval(handleSync, 15000); // Sync every 15 seconds
+    const intervalId = setInterval(handleSync, 5000); // Sync every 5 seconds
 
     return () => clearInterval(intervalId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: We only want this to run once on mount
