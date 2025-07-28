@@ -44,7 +44,7 @@ const assistantPrompt = ai.definePrompt(
     }
   );
 
-export const assistant = ai.defineFlow(
+const assistantFlow = ai.defineFlow(
   {
     name: 'assistant',
     inputSchema: AssistantInputSchema,
@@ -55,3 +55,7 @@ export const assistant = ai.defineFlow(
     return output ?? "Desculpe, não consegui processar sua solicitação no momento.";
   }
 );
+
+export async function assistant(input: AssistantInput): Promise<string> {
+  return assistantFlow(input);
+}
