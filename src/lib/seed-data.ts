@@ -4,7 +4,7 @@ import type { AgentDocument } from './types';
 export const seedAgentsData: AgentDocument[] = [
   {
     name: 'Camila',
-    tomticketName: 'Atendente Central de Planejamento - TR',
+    tomticketName: 'Atendente SAC - CM',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -53,18 +53,8 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'Sophia',
-    tomticketName: 'Sophia', // Assuming direct match if not provided
-    lastInteractionTime: new Date().toISOString(),
-    activeClients: 0,
-    isAvailable: true,
-    totalClientsHandled: 0,
-    avgTimePerClient: 0,
-    isOnPause: false,
-  },
-  {
     name: 'Valquiria',
-    tomticketName: 'Comercial',
+    tomticketName: 'Atendente SAC - VC',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -95,6 +85,16 @@ export const seedAgentsData: AgentDocument[] = [
   {
     name: 'Giovanna',
     tomticketName: 'Atendente SAC - GS',
+    lastInteractionTime: new Date().toISOString(),
+    activeClients: 0,
+    isAvailable: true,
+    totalClientsHandled: 0,
+    avgTimePerClient: 0,
+    isOnPause: false,
+  },
+   {
+    name: 'Sophia',
+    tomticketName: 'Sophia', // Nome de fallback
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,

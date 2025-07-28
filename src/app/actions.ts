@@ -1,9 +1,9 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { AgentDocument, PauseLogDocument, DailyReport, TomTicketTicket, TomTicketApiResponse } from '@/lib/types';
-import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
-import { format, subMinutes } from 'date-fns';
+import { AgentDocument, PauseLogDocument, DailyReport, TomTicketChat, TomTicketApiResponse } from '@/lib/types';
+import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 export async function clearAndSeedAgents(agents: AgentDocument[]) {
   const batch = writeBatch(db);
@@ -17,7 +17,7 @@ export async function clearAndSeedAgents(agents: AgentDocument[]) {
   console.log('Existing agents marked for deletion.');
 
   // 2. Seed new agents
-  agents.forEach((agent, index) => {
+  agents.forEach((agent) => {
     const agentRef = doc(agentsCollection); // Let firestore generate ID
     batch.set(agentRef, agent);
   });
@@ -69,78 +69,84 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
   return querySnapshot.docs.map(doc => doc.data() as DailyReport);
 }
 
-
-async function getActiveTickets(): Promise<TomTicketTicket[]> {
+async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
     const apiToken = process.env.TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
-        console.error('API token (TOMTICKET_API_TOKEN) is not available in server environment.');
-        throw new Error('API token (TOMTICKET_API_TOKEN) is not available in server environment.');
+        throw new Error('API token (TOMTICKET_API_TOKEN) is not configured in server environment.');
     }
 
-    try {
-        // Filtro por status=1 (Aberto/Em andamento) para ser mais eficiente
-        const url = `${TOMTICKET_API_URL}/ticket/list?status=1`;
-        console.log(`Fetching active tickets from TomTicket... URL: ${url}`);
-        
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${apiToken}`,
-            },
-            cache: 'no-store',
-        });
-        
-        if (!response.ok) {
-             const errorBody = await response.text();
-             console.error('TomTicket API Error:', {
-                status: response.status,
-                statusText: response.statusText,
-                body: errorBody
+    let allChats: TomTicketChat[] = [];
+    let page = 1;
+    let keepFetching = true;
+
+    while (keepFetching) {
+        try {
+            // Situation=2 means "Em conversa"
+            const url = `${TOMTICKET_API_URL}/chat/list?situation=2&page=${page}`;
+            console.log(`Fetching active chats from TomTicket... URL: ${url}`);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                },
+                cache: 'no-store',
             });
-            throw new Error(`Erro na API TomTicket: HTTP status ${response.status}`);
-        }
+            
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error('TomTicket API Error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorBody
+                });
+                throw new Error(`Erro na API TomTicket: HTTP status ${response.status}`);
+            }
 
-        const data: TomTicketApiResponse = await response.json();
-        
-        if (data.data) {
-            console.log(`Total active tickets fetched: ${data.data.length}`);
-            return data.data;
-        }
-        return [];
+            const data: TomTicketApiResponse = await response.json();
+            
+            if (data.success && data.data && data.data.length > 0) {
+                allChats = allChats.concat(data.data);
+                if (data.next_page) {
+                    page = data.next_page;
+                    // Add a small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                } else {
+                    keepFetching = false;
+                }
+            } else {
+                keepFetching = false;
+            }
 
-    } catch (error) {
-        console.error('Falha ao buscar tickets do TomTicket:', error);
-        if (error instanceof Error) {
-            throw new Error(`Falha na comunicação com a API TomTicket: ${error.message}`);
+        } catch (error) {
+            console.error('Failed to fetch chats from TomTicket:', error);
+            if (error instanceof Error) {
+                throw new Error(`Communication failure with TomTicket API: ${error.message}`);
+            }
+            throw new Error("An unknown error occurred while fetching chats from TomTicket.");
         }
-        throw new Error("Ocorreu um erro desconhecido ao buscar tickets do TomTicket.");
     }
+    return allChats;
 }
 
 
 export async function syncTomTicketData() {
   console.log("SERVER_SYNC: Starting TomTicket data sync...");
   try {
-    const allTickets = await getActiveTickets();
+    const activeChats = await getActiveChatsFromApi();
     
-    // An active ticket is one that has an operator assigned.
-    const activeTickets = allTickets.filter(ticket => ticket.operator && ticket.operator.name);
-    
-    console.log(`SERVER_SYNC: Found ${allTickets.length} total tickets from API. Found ${activeTickets.length} assigned tickets.`);
+    console.log(`SERVER_SYNC: Found ${activeChats.length} active chats from API.`);
 
-    const agentTicketCounts: { [key: string]: number } = {};
-    for (const ticket of activeTickets) {
-      const agentName = ticket.operator?.name; 
+    const agentChatCounts: { [key: string]: number } = {};
+    for (const chat of activeChats) {
+      const agentName = chat.operator?.name; 
       if (agentName) {
-        if (!agentTicketCounts[agentName]) {
-          agentTicketCounts[agentName] = 0;
-        }
-        agentTicketCounts[agentName]++;
+        agentChatCounts[agentName] = (agentChatCounts[agentName] || 0) + 1;
       }
     }
-    console.log("SERVER_SYNC: Counted active TomTicket agent tickets:", agentTicketCounts);
+    console.log("SERVER_SYNC: Counted active TomTicket agent chats:", agentChatCounts);
 
     const agentsCollection = collection(db, 'AtendimentoSAC');
     const agentsSnapshot = await getDocs(agentsCollection);
@@ -150,50 +156,49 @@ export async function syncTomTicketData() {
     
     const updateLog: string[] = [];
 
-    // Reset all agents to 0 before applying new counts
+    // Reset all agents' client counts to 0 before applying new counts
     agentsSnapshot.docs.forEach(doc => {
         batch.update(doc.ref, { activeClients: 0 });
     });
 
-
+    // Apply the new counts from the API
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
-      
       const tomticketName = agent.tomticketName;
       
-      const tomTicketCount = tomticketName ? agentTicketCounts[tomticketName] || 0 : 0;
+      const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
-      if (agent.activeClients !== tomTicketCount) {
-        const logMessage = `Updating ${agent.name} (TomTicket: ${tomticketName}): Firestore count ${agent.activeClients} -> API count ${tomTicketCount}`;
-        console.log(`SERVER_SYNC: ${logMessage}`);
-        updateLog.push(logMessage);
+      // Update even if the count is the same (0), to ensure reset is committed.
+      const logMessage = `Updating ${agent.name} (TomTicket: ${tomticketName}): Firestore count ${agent.activeClients} -> API count ${tomTicketCount}`;
+      updateLog.push(logMessage);
 
-        batch.update(agentRef, { 
-          activeClients: tomTicketCount,
-          // Only update interaction time if they are active
-          ...(tomTicketCount > 0 && { lastInteractionTime: now })
-        });
-        updatesMade++;
-      }
+      batch.update(agentRef, { 
+        activeClients: tomTicketCount,
+        // Only update interaction time if they are active
+        ...(tomTicketCount > 0 && { lastInteractionTime: now })
+      });
+      updatesMade++;
     });
 
     if (updatesMade > 0) {
         await batch.commit();
         console.log(`SERVER_SYNC: Firestore batch commit successful. Updated ${updatesMade} agents.`);
     } else {
-        console.log("SERVER_SYNC: No changes in active client counts. No Firestore update needed.");
+        // This case might happen if there are no agents in Firestore.
+        // We still need to commit the reset batch.
+        await batch.commit();
+        console.log("SERVER_SYNC: No agents to update, but reset batch committed.");
     }
     
     return { 
         success: true, 
         message: "Sync successful",
-        totalTickets: allTickets.length,
-        activeTickets: activeTickets.length,
-        agentTicketCounts: agentTicketCounts,
+        activeChats: activeChats.length,
+        agentChatCounts: agentChatCounts,
         updatesMade,
         updateLog,
-        dataSample: allTickets.slice(0, 5) 
+        dataSample: activeChats.slice(0, 5) 
     };
   } catch (error) {
     console.error("[CRITICAL] SERVER_SYNC: Failed to sync TomTicket data:", error);

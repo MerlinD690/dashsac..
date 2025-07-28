@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Zap } from 'lucide-react';
 import { clearAndSeedAgents, syncTomTicketData } from './actions';
@@ -38,15 +38,12 @@ export default function Home() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
-  // Firestore real-time listeners
+  // Firestore real-time listeners for agents and today's pause logs
   useEffect(() => {
     try {
       const agentsQuery = query(collection(db, "AtendimentoSAC"));
       const unsubscribeAgents = onSnapshot(agentsQuery, (querySnapshot) => {
-        const agentsData: Agent[] = [];
-        querySnapshot.forEach((doc) => {
-          agentsData.push({ id: doc.id, ...doc.data() } as Agent);
-        });
+        const agentsData: Agent[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Agent));
         setAgents(agentsData);
         if (isLoading) setIsLoading(false);
       }, (err) => {
@@ -58,19 +55,12 @@ export default function Home() {
 
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
-
       const pauseLogsQuery = query(
         collection(db, "pause_logs"),
-        where("pauseStartTime", ">=", startOfDay.toISOString()),
-        where("pauseStartTime", "<=", endOfDay.toISOString())
+        where("pauseStartTime", ">=", startOfDay.toISOString())
       );
       const unsubscribePauseLogs = onSnapshot(pauseLogsQuery, (querySnapshot) => {
-        const logsData: PauseLog[] = [];
-        querySnapshot.forEach((doc) => {
-          logsData.push({ id: doc.id, ...doc.data() } as PauseLog);
-        });
+        const logsData: PauseLog[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PauseLog));
         setPauseLogs(logsData);
       });
         
@@ -87,9 +77,11 @@ export default function Home() {
   
   // TomTicket API sync logic
   useEffect(() => {
-    let isSyncingRef = false; // Use a ref-like variable to prevent re-entrant calls
+    let isSyncingRef = false; 
 
     const handleSync = async () => {
+      if (isSyncingRef) return;
+
       isSyncingRef = true;
       setIsSyncing(true);
       try {
@@ -118,11 +110,7 @@ export default function Home() {
     handleSync();
 
     // Set up interval for subsequent syncs
-    const intervalId = setInterval(() => {
-        if (!isSyncingRef) {
-            handleSync();
-        }
-    }, 5000); // Sync every 5 seconds
+    const intervalId = setInterval(handleSync, 5000); // Sync every 5 seconds
 
     return () => clearInterval(intervalId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: We only want this to run once on mount
