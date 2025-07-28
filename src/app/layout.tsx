@@ -4,8 +4,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'OmoFlow Dashboard',
-  description: 'Dashboard para gerenciar e monitorar atendentes de uma lavanderia.',
+  title: 'Fila de Atendimento Sac',
+  description: 'Dashboard para gerenciar e monitorar atendentes.',
 };
 
 export default function RootLayout({
