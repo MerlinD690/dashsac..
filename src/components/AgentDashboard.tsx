@@ -61,6 +61,7 @@ const findNextBestAgent = (agents: Agent[]): string | null => {
 
 export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: Agent[]; setAgents: React.Dispatch<React.SetStateAction<Agent[]>>, onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
   const { toast } = useToast();
+  const [updatingClients, setUpdatingClients] = useState<Set<string>>(new Set());
   
   const nextAgentId = findNextBestAgent(agents);
 
@@ -90,9 +91,17 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
   };
 
   const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
+    // Prevent multiple clicks while processing
+    if (updatingClients.has(agent.id)) {
+      return;
+    }
+
     const newCount = agent.activeClients + change;
     if (newCount < 0 || newCount > 5) return;
 
+    // Immediately disable buttons for this agent
+    setUpdatingClients(prev => new Set(prev).add(agent.id));
+    
     const now = new Date();
     
     const updatesForServer: Partial<AgentDocument> = {
@@ -127,8 +136,18 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
       playNotificationSound();
     }
 
-    // Call server action in the background
+    // Call server action in the background and re-enable buttons
     handleUpdateOnServer(agent.id, updatesForServer);
+    
+    // Re-enable buttons after a very short delay to allow UI to update
+    // The final state will be synced by Firestore's onSnapshot anyway
+    setTimeout(() => {
+        setUpdatingClients(prev => {
+            const next = new Set(prev);
+            next.delete(agent.id);
+            return next;
+        });
+    }, 300);
   };
 
   const handleToggleAvailability = (agent: Agent, available: boolean) => {
@@ -213,6 +232,8 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
             {sortedAgents.map((agent) => {
               const status = getStatus(agent);
               const isNextAgent = agent.id === nextAgentId;
+              const isUpdating = updatingClients.has(agent.id);
+
               return (
                 <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 hover:bg-primary/30")}>
                   <TableCell>
@@ -223,11 +244,11 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                   <TableCell className={cn(isNextAgent && "font-bold")}>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center gap-2">
-                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
+                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0 || isUpdating}>
                               <Minus className="h-4 w-4" />
                           </Button>
                           <span className={cn("w-4 text-lg", isNextAgent ? "font-bold" : "font-medium")}>{agent.activeClients}</span>
-                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
+                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients >= 5 || isUpdating}>
                               <Plus className="h-4 w-4" />
                           </Button>
                       </div>
