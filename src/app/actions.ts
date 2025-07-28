@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { AgentDocument, PauseLogDocument, DailyReport, TomTicketApiResponse } from '@/lib/types';
+import { AgentDocument, PauseLogDocument, DailyReport, TomTicketApiResponse, TomTicketChat } from '@/lib/types';
 import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
 import { format, subMinutes } from 'date-fns';
 
@@ -70,7 +70,7 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 }
 
 
-async function getActiveChats(apiToken: string): Promise<TomTicketApiResponse> {
+async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
     if (!apiToken) {
         throw new Error('API token was not provided to getActiveChats function.');
@@ -98,7 +98,7 @@ async function getActiveChats(apiToken: string): Promise<TomTicketApiResponse> {
         }
 
         const data: TomTicketApiResponse = await response.json();
-        return data;
+        return data.data || [];
 
     } catch (error) {
         console.error('Falha ao buscar chats do TomTicket:', error);
@@ -113,24 +113,22 @@ async function getActiveChats(apiToken: string): Promise<TomTicketApiResponse> {
 export async function syncTomTicketData() {
   console.log("Starting TomTicket data sync...");
   try {
-    const apiToken = process.env.TOMTICKET_API_TOKEN;
+    // DIAGNOSTIC STEP: Hardcode the token to eliminate environment variable issues.
+    const apiToken = "9a152bbee93cb69a54e99ca1070ba6e0aba9d8e086b65916a7e364c87057323c";
+    
     if (!apiToken) {
-        console.error("[CRITICAL] TOMTICKET_API_TOKEN is not configured on the server.");
-        throw new Error("Server is not configured with TomTicket API token.");
+        const errorMessage = "[CRITICAL] TomTicket API Token is not available.";
+        console.error(errorMessage);
+        throw new Error(errorMessage);
     }
+    
+    console.log(`[DIAGNOSTIC] Using token starting with: ${apiToken.substring(0, 4)}...`);
 
-    const tomTicketResponse = await getActiveChats(apiToken);
-    console.log("TomTicket API Response:", JSON.stringify(tomTicketResponse, null, 2));
 
-    if (!tomTicketResponse.success || !tomTicketResponse.data) {
-      console.error("TomTicket API returned an error or no data:", tomTicketResponse.message);
-      throw new Error(`TomTicket API did not return success: ${tomTicketResponse.message || 'No data property'}`);
-    }
-
-    const allChats = tomTicketResponse.data;
-
+    const allChats = await getActiveChats(apiToken);
+    
     const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
-    console.log(`Found ${allChats.length} total chats. Found ${activeChats.length} active chats (situation 1 or 2).`);
+    console.log(`Found ${allChats.length} total chats in the last 5 minutes. Found ${activeChats.length} active chats (situation 1 or 2).`);
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
