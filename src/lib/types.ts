@@ -55,17 +55,17 @@ const AgentIdentifierSchema = z.object({
 });
 
 export const AnalysisOutputSchema = z.object({
-  mostProductiveAgent: AgentIdentifierSchema.describe('O atendente que atendeu o maior número de clientes.'),
-  leastProductiveAgent: AgentIdentifierSchema.describe('O atendente que atendeu o menor número de clientes.'),
+  mostProductiveAgent: AgentIdentifierSchema.describe('A atendente que atendeu o maior número de clientes no dia.'),
+  leastProductiveAgent: AgentIdentifierSchema.describe('A atendente que atendeu o menor número de clientes no dia.'),
   agentPerformance: z
     .array(AgentPerformanceSchema)
-    .describe('Lista de performance individual de cada atendente.'),
+    .describe('Lista de performance individual de cada atendente para o dia.'),
   overallSummary: z
     .string()
     .describe(
       'Um resumo em um ou dois parágrafos sobre a performance geral do dia, incluindo dicas e recomendações sobre pausas, número de atendimentos e eficiência.'
     ),
-  historicalAnalysis: z.string().optional().describe("Uma análise de tendências de performance baseada nos dados históricos. Inclui insights sobre consistência, atendentes que mais se destacam (positiva ou negativamente) ao longo do tempo e recomendações estratégicas. Sempre use os números e dados para embasar sua análise."),
+  historicalAnalysis: z.string().optional().describe("Uma análise de tendências de performance baseada nos dados históricos. Inclui insights sobre consistência (quem se destaca positiva ou negativamente ao longo do tempo), possível sobrecarga de trabalho e recomendações estratégicas. Sempre use os números e dados para embasar sua análise."),
 });
 export type AnalysisOutput = z.infer<typeof AnalysisOutputSchema>;
 
