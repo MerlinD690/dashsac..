@@ -66,7 +66,7 @@ export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
 const AgentPerformanceSchema = z.object({
     name: z.string().describe('Nome do atendente.'),
     clientsHandled: z.number().describe('Total de clientes atendidos.'),
-    totalPauseTime: z.number().describe('Tempo total de pausa em minutos.'),
+    totalPauseTime: z.string().describe('Tempo total de pausa formatado como "X minutos" ou "Y segundos".'),
 });
 
 export const AnalysisOutputSchema = z.object({
