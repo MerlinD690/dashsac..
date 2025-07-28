@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -13,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { Agent, PauseLog } from '@/lib/types';
+import { Agent, PauseLog, AgentDocument } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
@@ -59,38 +58,24 @@ const findNextBestAgent = (agents: Agent[]): string | null => {
   return availableAgents.length > 0 ? availableAgents[0].id : null;
 };
 
-// Check if we are in demo mode (no Supabase keys)
-const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL === 'YOUR_SUPABASE_URL';
 
-export function AgentDashboard({ agents: initialAgents, onAddPauseLog }: { agents: Agent[]; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
-  const [localAgents, setLocalAgents] = useState(initialAgents);
+export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
   const { toast } = useToast();
   
-  const agents = isDemoMode ? localAgents : initialAgents;
-  const setAgents = isDemoMode ? setLocalAgents : () => {};
-
   const nextAgentId = findNextBestAgent(agents);
 
-  const handleUpdate = (agentId: string, updates: Partial<Agent>) => {
-      if (isDemoMode) {
-          setAgents(prev => prev.map(a => a.id === agentId ? {...a, ...updates} : a));
-          return;
-      }
-
+  const handleUpdate = (agentId: string, updates: Partial<AgentDocument>) => {
       updateAgent(agentId, updates).catch(error => {
           console.error(`Failed to update agent ${agentId}`, error);
-          toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
+          toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente no Firestore.' });
       });
   };
 
-  const handleAddLog = (log: Omit<PauseLog, 'id'>) => {
-    onAddPauseLog(log);
-    if (!isDemoMode) {
-      addPauseLog(log).catch(error => {
-          console.error("Failed to add pause log", error);
-          toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível registrar a pausa.' });
-      });
-    }
+  const handleAddLog = (log: Omit<PauseLog, 'id' | 'agentName'> & { agentName: string }) => {
+    addPauseLog(log).catch(error => {
+        console.error("Failed to add pause log", error);
+        toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível registrar a pausa no Firestore.' });
+    });
   }
 
   const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
@@ -99,7 +84,7 @@ export function AgentDashboard({ agents: initialAgents, onAddPauseLog }: { agent
 
     const now = new Date();
     
-    const updates: Partial<Agent> = {
+    const updates: Partial<AgentDocument> = {
       activeClients: newCount,
       lastInteractionTime: now.toISOString(),
     };
@@ -142,7 +127,7 @@ export function AgentDashboard({ agents: initialAgents, onAddPauseLog }: { agent
 
     const isOnPause = !agent.isOnPause;
     const now = new Date().toISOString();
-    const updates: Partial<Agent> = { isOnPause, lastInteractionTime: now };
+    const updates: Partial<AgentDocument> = { isOnPause, lastInteractionTime: now };
 
     if (isOnPause) {
         updates.pauseStartTime = now;

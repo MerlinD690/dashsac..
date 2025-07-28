@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
+// Estrutura principal do Atendente, usada no front-end
 export interface Agent {
-  id: string;
+  id: string; // O ID do documento no Firestore
   name: string;
   lastInteractionTime: string; // ISO string
   activeClients: number;
@@ -13,44 +14,35 @@ export interface Agent {
   pauseStartTime?: string; // ISO string
 }
 
-export const AgentSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  lastInteractionTime: z.string().datetime(),
-  activeClients: z.number().int(),
-  isAvailable: z.boolean(),
-  totalClientsHandled: z.number().int(),
-  avgTimePerClient: z.number(),
-  clientFeedback: z.string().optional(),
-  isOnPause: z.boolean(),
-  pauseStartTime: z.string().datetime().optional().nullable(),
-});
-
-// This type is used when passing data to the AI, it includes the pre-calculated pause time.
-export interface AgentWithPauseData extends Agent {
-  totalPauseTimeFormatted: string;
+// Como os dados do atendente são armazenados no Firestore (sem o ID no corpo do doc)
+export interface AgentDocument {
+  name: string;
+  lastInteractionTime: string;
+  activeClients: number;
+  isAvailable: boolean;
+  totalClientsHandled: number;
+  avgTimePerClient: number;
+  isOnPause: boolean;
+  pauseStartTime?: string;
 }
 
-export const AgentWithPauseDataSchema = AgentSchema.extend({
-  totalPauseTimeFormatted: z.string(),
-});
-
-
+// Log de Pausa, usado no front-end
 export interface PauseLog {
-  id?: number; // Supabase uses number for primary key by default
+  id: string; // O ID do documento no Firestore
   agentName: string;
   pauseStartTime: string; // ISO string
   pauseEndTime: string; // ISO string
 }
 
-export const PauseLogSchema = z.object({
-    id: z.number().int().optional(),
-    agentName: z.string(),
-    pauseStartTime: z.string().datetime(),
-    pauseEndTime: z.string().datetime(),
-});
+// Como os dados do log de pausa são armazenados no Firestore
+export interface PauseLogDocument {
+    agentName: string;
+    pauseStartTime: string;
+    pauseEndTime: string;
+}
 
-// AI Related types
+
+// Tipos relacionados à IA (permanecem os mesmos)
 export const AgentPerformanceSchema = z.object({
     name: z.string().describe('Nome do atendente.'),
     clientsHandled: z.number().describe('Total de clientes atendidos.'),
@@ -82,18 +74,28 @@ export interface DailyReport extends AnalysisOutput {
     date: string; // YYYY-MM-DD
 }
 
-export const DailyReportSchema = AnalysisOutputSchema.extend({
-    date: z.string(),
+// Este tipo é usado quando passamos os dados para a IA, incluindo o tempo de pausa pré-calculado
+export interface AgentWithPauseData extends Agent {
+  totalPauseTimeFormatted: string;
+}
+
+export const AgentWithPauseDataSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  lastInteractionTime: z.string(),
+  activeClients: z.number(),
+  isAvailable: z.boolean(),
+  totalClientsHandled: z.number(),
+  avgTimePerClient: z.number(),
+  isOnPause: z.boolean(),
+  pauseStartTime: z.string().optional(),
+  totalPauseTimeFormatted: z.string(),
 });
 
 
 export const AnalysisInputSchema = z.object({
   agents: z.array(AgentWithPauseDataSchema),
   totalClientsToday: z.number().describe('O número total de clientes atendidos por todos os atendentes no dia.'),
-  historicalData: z.array(DailyReportSchema).optional().describe('Dados de performance dos dias anteriores para análise de tendências.'),
+  historicalData: z.array(z.any()).optional().describe('Dados de performance dos dias anteriores para análise de tendências.'),
 });
 export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
-
-// Supabase doesn't need these document types anymore
-export interface AgentDocument {}
-export interface PauseLogDocument {}
