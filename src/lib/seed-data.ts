@@ -4,7 +4,7 @@ import type { AgentDocument } from './types';
 export const seedAgentsData: AgentDocument[] = [
   {
     name: 'Camila',
-    tomticketName: 'Atendente SAC - CM',
+    tomticketName: 'Atendente Central de Planejamento - TR',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -64,7 +64,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Valquiria',
-    tomticketName: 'Atendente SAC - VC',
+    tomticketName: 'Comercial',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
