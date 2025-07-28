@@ -21,6 +21,7 @@ interface TomTicketChat {
 interface TomTicketApiResponse {
   success: boolean;
   data: TomTicketChat[];
+  message?: string; // Adicionado para capturar a mensagem de erro
 }
 
 
@@ -91,16 +92,16 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 
 async function getActiveChats(): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
-    // Hardcoded token for diagnostics
-    const apiToken = "9a152bbee93cb69a54e99ca1070ba6e0aba9d8e086b65916a7e364c87057323c";
+    // O token agora é lido diretamente do ambiente do servidor.
+    const apiToken = process.env.TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
-        throw new Error('API token is not available in getActiveChats.');
+        throw new Error('API token (TOMTICKET_API_TOKEN) is not available in server environment.');
     }
 
     try {
         const fiveMinutesAgo = subMinutes(new Date(), 5);
-        // Format to 'YYYY-MM-DD HH:MM:SS' which is more common for APIs expecting this format
+        // Formato Exato: YYYY-MM-DD HH:mm:ss, conforme a documentação e o erro "Invalid Date"
         const formattedDate = format(fiveMinutesAgo, 'yyyy-MM-dd HH:mm:ss');
         
         const url = new URL(`${TOMTICKET_API_URL}/chat/list`);
@@ -113,14 +114,21 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
             },
             cache: 'no-store',
         });
+        
+        const data: TomTicketApiResponse = await response.json();
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('TomTicket API Error Response:', errorText);
-            throw new Error(`Erro na API TomTicket: Status ${response.status} - ${errorText}`);
+            // Log detalhado para diagnosticar o erro
+            console.error('TomTicket API Error:', {
+                status: response.status,
+                statusText: response.statusText,
+                body: data
+            });
+            // Levanta um erro com a mensagem da API, se disponível.
+            const errorMessage = data.message || `HTTP error! status: ${response.status}`;
+            throw new Error(`Erro na API TomTicket: ${errorMessage}`);
         }
 
-        const data: TomTicketApiResponse = await response.json();
         return data.data || [];
 
     } catch (error) {
