@@ -25,12 +25,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input"
-import { Bot, Users, Activity, Lock, Award, Users2 } from 'lucide-react';
-import { Agent, PauseLog, AnalysisOutput, AgentWithPauseData } from '@/lib/types';
+import { Bot, Users, Activity, Lock, Award, Users2, History } from 'lucide-react';
+import { Agent, PauseLog, AnalysisOutput, AgentWithPauseData, DailyReport } from '@/lib/types';
 import { analyzeAgents } from '@/ai/flows/analyzeAgents';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { addDailyReport, getDailyReports } from '@/app/actions';
 
 // Hardcoded password for the analysis feature
 const ANALYSIS_PASSWORD = "Omo123456789.";
@@ -70,22 +71,7 @@ function AnalysisResult({ result, totalClients }: { result: AnalysisOutput, tota
           </div>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Award /> Atendente em Destaque
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-            <div className="flex flex-col gap-1 rounded-lg border p-3">
-                <p className="font-semibold text-primary">{result.mostProductiveAgent.name}</p>
-                <p className="text-muted-foreground">foi o(a) atendente mais produtiva do dia.</p>
-                <p className="font-bold">{result.mostProductiveAgent.clientsHandled} clientes atendidos</p>
-            </div>
-        </CardContent>
-      </Card>
-
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -117,6 +103,19 @@ function AnalysisResult({ result, totalClients }: { result: AnalysisOutput, tota
              <p className="text-muted-foreground whitespace-pre-wrap">{result.overallSummary}</p>
         </CardContent>
       </Card>
+      
+      {result.historicalAnalysis && (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <History /> Análise Histórica e Tendências
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground whitespace-pre-wrap">{result.historicalAnalysis}</p>
+            </CardContent>
+        </Card>
+      )}
       
     </div>
   );
@@ -203,10 +202,7 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
     e.preventDefault();
     if (password === ANALYSIS_PASSWORD) {
         setIsSheetOpen(true);
-        // Reset password field for next time
         setPassword("");
-        // Close the dialog - since we now control the sheet's open state
-        // we need to find a way to close the dialog. We can click the cancel button.
         document.getElementById('close-password-dialog')?.click();
     } else {
         toast({
@@ -214,7 +210,6 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
             title: "Senha Incorreta",
             description: "A senha para acessar a análise está incorreta.",
         });
-        // Prevent dialog from closing
     }
   }
 
@@ -222,7 +217,6 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
     setIsLoading(true);
     setAnalysisResult(null);
     try {
-      // Pré-processamento dos dados do agente para incluir o tempo de pausa formatado
       const agentsWithPauseData: AgentWithPauseData[] = agents.map(agent => ({
         ...agent,
         totalPauseTimeFormatted: calculateAndFormatPauseTime(agent.name, pauseLogs),
@@ -231,8 +225,20 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
       const totalClients = agents.reduce((acc, agent) => acc + agent.totalClientsHandled, 0);
       setTotalClientsToday(totalClients);
       
-      const result = await analyzeAgents({ agents: agentsWithPauseData, totalClientsToday: totalClients });
+      const historicalData = await getDailyReports(30);
+      
+      const result = await analyzeAgents({ 
+          agents: agentsWithPauseData, 
+          totalClientsToday: totalClients,
+          historicalData: historicalData,
+      });
+
       setAnalysisResult(result);
+
+      // Save the new report, but without the historical analysis part to avoid data duplication
+      const { historicalAnalysis, ...reportToSave } = result;
+      await addDailyReport(reportToSave);
+
     } catch (error) {
       console.error('AI analysis failed:', error);
       toast({
@@ -278,7 +284,6 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                                // We need to find the button and click it to trigger the check
                                  const button = (e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector(
                                     'button[data-dialog-action]'
                                 )) as HTMLButtonElement | null;
@@ -303,7 +308,7 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
         <SheetHeader>
           <SheetTitle>Análise de Performance com IA</SheetTitle>
           <SheetDescription>
-            A IA irá analisar os dados de performance dos atendentes e gerar insights sobre o dia de trabalho.
+            A IA irá analisar os dados de performance dos atendentes e gerar insights sobre o dia e tendências históricas.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-1 pr-4">

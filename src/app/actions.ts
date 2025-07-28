@@ -1,15 +1,15 @@
 
 'use server';
 
-// NOTE: This file is not currently used because the app is running in client-side only mode.
-// Firestore API needs to be enabled in the project for these functions to work.
-
 import { db } from '@/lib/firebase';
-import { Agent, AgentDocument, PauseLog, PauseLogDocument } from '@/lib/types';
-import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp, deleteField, getDoc, collectionGroup, deleteDoc, documentId } from 'firebase/firestore';
+import { Agent, AgentDocument, PauseLog, PauseLogDocument, DailyReport } from '@/lib/types';
+import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp, deleteField, getDoc, collectionGroup, deleteDoc, documentId, orderBy, limit } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 const agentsCollection = collection(db, 'agents');
 const pauseLogsCollection = collection(db, 'pauseLogs');
+const dailyReportsCollection = collection(db, 'dailyReports');
+
 
 export async function clearAndSeedAgents(agents: Agent[]) {
   // Clear existing agents
@@ -32,7 +32,6 @@ export async function clearAndSeedAgents(agents: Agent[]) {
       lastInteractionTime: Timestamp.fromDate(new Date(agent.lastInteractionTime)),
     };
     
-    // Firestore does not accept undefined, so we must remove the optional fields if they are not present
     if (agentData.pauseStartTime === undefined) {
       delete agentData.pauseStartTime;
     }
@@ -52,7 +51,6 @@ export async function updateAgent(agentId: string, data: Partial<Agent>) {
   
   const updateData: { [key: string]: any } = { ...data };
 
-  // Convert ISO strings back to Timestamps for Firestore
   if (data.lastInteractionTime) {
     updateData.lastInteractionTime = Timestamp.fromDate(new Date(data.lastInteractionTime));
   }
@@ -65,7 +63,6 @@ export async function updateAgent(agentId: string, data: Partial<Agent>) {
     }
   }
 
-  // Remove id from data to prevent it from being written to the document
   if ('id' in updateData) {
     delete updateData.id;
   }
@@ -98,4 +95,20 @@ export async function getPauseLogsInRange(startDate: Date, endDate: Date): Promi
             pauseEndTime: data.pauseEndTime.toDate().toISOString(),
         }
     });
+}
+
+export async function addDailyReport(report: Omit<DailyReport, 'date'>) {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const reportWithDate: DailyReport = {
+        ...report,
+        date: today,
+    };
+    const reportRef = doc(dailyReportsCollection, today);
+    await writeBatch(db).set(reportRef, reportWithDate).commit();
+}
+
+export async function getDailyReports(days = 30): Promise<DailyReport[]> {
+    const q = query(dailyReportsCollection, orderBy('date', 'desc'), limit(days));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as DailyReport);
 }

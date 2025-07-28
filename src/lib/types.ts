@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
 
@@ -63,16 +62,8 @@ export interface PauseLogDocument extends Omit<PauseLog, 'pauseStartTime' | 'pau
     pauseEndTime: Timestamp;
 }
 
-
 // AI Related types
-export const AnalysisInputSchema = z.object({
-  agents: z.array(AgentWithPauseDataSchema),
-  totalClientsToday: z.number().describe('O número total de clientes atendidos por todos os atendentes no dia.'),
-});
-export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
-
-
-const AgentPerformanceSchema = z.object({
+export const AgentPerformanceSchema = z.object({
     name: z.string().describe('Nome do atendente.'),
     clientsHandled: z.number().describe('Total de clientes atendidos.'),
     totalPauseTime: z.string().describe('Tempo total de pausa formatado (ex: "X minutos" ou "Y segundos"). Este valor já vem calculado.'),
@@ -94,5 +85,23 @@ export const AnalysisOutputSchema = z.object({
     .describe(
       'Um resumo em um ou dois parágrafos sobre a performance geral do dia, incluindo dicas e recomendações sobre pausas, número de atendimentos e eficiência.'
     ),
+  historicalAnalysis: z.string().optional().describe("Uma análise de tendências de performance baseada nos dados históricos. Inclui insights sobre consistência, atendentes que mais se destacam (positiva ou negativamente) ao longo do tempo e recomendações estratégicas. Sempre use os números e dados para embasar sua análise."),
 });
 export type AnalysisOutput = z.infer<typeof AnalysisOutputSchema>;
+
+
+export interface DailyReport extends AnalysisOutput {
+    date: string; // YYYY-MM-DD
+}
+
+export const DailyReportSchema = AnalysisOutputSchema.extend({
+    date: z.string(),
+});
+
+
+export const AnalysisInputSchema = z.object({
+  agents: z.array(AgentWithPauseDataSchema),
+  totalClientsToday: z.number().describe('O número total de clientes atendidos por todos os atendentes no dia.'),
+  historicalData: z.array(DailyReportSchema).optional().describe('Dados de performance dos dias anteriores para análise de tendências.'),
+});
+export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
