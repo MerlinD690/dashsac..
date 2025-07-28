@@ -89,11 +89,11 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
     const apiToken = process.env.TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
+        console.error('API token (TOMTICKET_API_TOKEN) is not available in server environment.');
         throw new Error('API token (TOMTICKET_API_TOKEN) is not available in server environment.');
     }
 
     try {
-        // Removendo completamente o parâmetro de data para evitar o erro "Invalid date"
         const url = `${TOMTICKET_API_URL}/chat/list`;
 
         const response = await fetch(url, {
@@ -129,14 +129,12 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
 
 
 export async function syncTomTicketData() {
-  console.log("Starting TomTicket data sync...");
+  console.log("SERVER_SYNC: Starting TomTicket data sync...");
   try {
     const allChats = await getActiveChats();
     
-    // Filtramos aqui para garantir que temos os chats corretos
-    // Situação 1 = Aguardando, 2 = Em conversa
     const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
-    console.log(`Found ${allChats.length} total chats from API. Found ${activeChats.length} active chats (situation 1 or 2).`);
+    console.log(`SERVER_SYNC: Found ${allChats.length} total chats from API. Found ${activeChats.length} active chats (situation 1 or 2).`);
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
@@ -148,28 +146,31 @@ export async function syncTomTicketData() {
         agentChatCounts[agentName]++;
       }
     }
-    console.log("Counted TomTicket agent chats:", agentChatCounts);
+    console.log("SERVER_SYNC: Counted TomTicket agent chats:", agentChatCounts);
 
     const agentsCollection = collection(db, 'AtendimentoSAC');
     const agentsSnapshot = await getDocs(agentsCollection);
     const batch = writeBatch(db);
     const now = new Date().toISOString();
     let updatesMade = 0;
+    
+    const updateLog: string[] = [];
 
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
       
       const tomticketName = agent.tomticketName;
-      // O nome no TomTicket pode não ser exatamente igual, então vamos ser flexíveis
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
-      // Apenas atualizamos se a contagem for diferente
       if (agent.activeClients !== tomTicketCount) {
-        console.log(`Updating ${agent.name} (TomTicket: ${tomticketName}): from ${agent.activeClients} to ${tomTicketCount}`);
+        const logMessage = `Updating ${agent.name} (TomTicket: ${tomticketName}): from ${agent.activeClients} to ${tomTicketCount}`;
+        console.log(`SERVER_SYNC: ${logMessage}`);
+        updateLog.push(logMessage);
+
         batch.update(agentRef, { 
           activeClients: tomTicketCount,
-          lastInteractionTime: now // Atualiza o tempo de interação em qualquer mudança
+          lastInteractionTime: now
         });
         updatesMade++;
       }
@@ -177,14 +178,22 @@ export async function syncTomTicketData() {
 
     if (updatesMade > 0) {
         await batch.commit();
-        console.log(`Firestore batch commit successful. Updated ${updatesMade} agents.`);
+        console.log(`SERVER_SYNC: Firestore batch commit successful. Updated ${updatesMade} agents.`);
     } else {
-        console.log("No changes in active client counts. No Firestore update needed.");
+        console.log("SERVER_SYNC: No changes in active client counts. No Firestore update needed.");
     }
     
-    return { success: true, message: "Sync successful" };
+    return { 
+        success: true, 
+        message: "Sync successful",
+        totalChats: allChats.length,
+        activeChats: activeChats.length,
+        agentChatCounts,
+        updatesMade,
+        updateLog
+    };
   } catch (error) {
-    console.error("[CRITICAL] Failed to sync TomTicket data:", error);
+    console.error("[CRITICAL] SERVER_SYNC: Failed to sync TomTicket data:", error);
     if (error instanceof Error) {
         return { success: false, message: error.message };
     }

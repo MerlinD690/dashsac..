@@ -75,7 +75,8 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
       console.log('SYNC_CLIENT: Tentando sincronizar com o TomTicket...');
       try {
         const result = await syncTomTicketData();
-        console.log('SYNC_CLIENT: Sincronização concluída.', result);
+        console.log('SYNC_CLIENT: Sincronização concluída. Resultado:', result);
+        
         if (result.success) {
           if (syncError) { // If there was an error before, show success message
              toast({
