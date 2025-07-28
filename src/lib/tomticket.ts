@@ -35,6 +35,10 @@ export async function getActiveChats(): Promise<TomTicketApiResponse> {
     if (!response.ok) {
         const errorBody = await response.text();
         console.error("Erro na API TomTicket:", errorBody);
+        // Special check for 401 Unauthorized
+        if (response.status === 401) {
+             throw new Error(`Erro na API TomTicket: Unauthorized`);
+        }
         throw new Error(`Erro na API TomTicket: ${response.statusText}`);
     }
 
@@ -48,3 +52,4 @@ export async function getActiveChats(): Promise<TomTicketApiResponse> {
     throw new Error("Ocorreu um erro desconhecido ao buscar chats do TomTicket.");
   }
 }
+
