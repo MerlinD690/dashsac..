@@ -1,9 +1,28 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { AgentDocument, PauseLogDocument, DailyReport, TomTicketApiResponse, TomTicketChat } from '@/lib/types';
+import { AgentDocument, PauseLogDocument, DailyReport } from '@/lib/types';
 import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
 import { format, subMinutes } from 'date-fns';
+
+// Tipos locais para a resposta da API TomTicket
+interface TomTicketOperator {
+    id: string;
+    name: string;
+}
+
+interface TomTicketChat {
+  id: string;
+  protocolo: number;
+  situation: number; // 1 - Aguardando, 2 - Em conversa, 3 - Finalizado
+  operator: TomTicketOperator | null;
+}
+
+interface TomTicketApiResponse {
+  success: boolean;
+  data: TomTicketChat[];
+}
+
 
 export async function clearAndSeedAgents(agents: AgentDocument[]) {
   const batch = writeBatch(db);
@@ -70,10 +89,13 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 }
 
 
-async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
+async function getActiveChats(): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
+    // Hardcoded token for diagnostics
+    const apiToken = "9a152bbee93cb69a54e99ca1070ba6e0aba9d8e086b65916a7e364c87057323c";
+
     if (!apiToken) {
-        throw new Error('API token was not provided to getActiveChats function.');
+        throw new Error('API token is not available in getActiveChats.');
     }
 
     try {
@@ -86,7 +108,7 @@ async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
         const response = await fetch(url.toString(), {
             method: 'GET',
             headers: {
-                'authorization': `Bearer ${apiToken}`,
+                'Authorization': `Bearer ${apiToken}`, // Exact formatting as per documentation
             },
             cache: 'no-store',
         });
@@ -94,7 +116,7 @@ async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('TomTicket API Error Response:', errorText);
-            throw new Error(`Erro na API TomTicket: Status ${response.status} - ${response.statusText}`);
+            throw new Error(`Erro na API TomTicket: Status ${response.status} - ${errorText}`);
         }
 
         const data: TomTicketApiResponse = await response.json();
@@ -113,18 +135,7 @@ async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
 export async function syncTomTicketData() {
   console.log("Starting TomTicket data sync...");
   try {
-    const apiToken = "9a152bbee93cb69a54e99ca1070ba6e0aba9d8e086b65916a7e364c87057323c";
-    
-    if (!apiToken) {
-        const errorMessage = "[CRITICAL] TomTicket API Token is not available.";
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-    }
-    
-    console.log(`[DIAGNOSTIC] Using token starting with: ${apiToken.substring(0, 4)}...`);
-
-
-    const allChats = await getActiveChats(apiToken);
+    const allChats = await getActiveChats();
     
     const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
     console.log(`Found ${allChats.length} total chats in the last 5 minutes. Found ${activeChats.length} active chats (situation 1 or 2).`);
@@ -154,11 +165,12 @@ export async function syncTomTicketData() {
       const tomticketName = agent.tomticketName;
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
+      // We only update if the count from TomTicket is different from what we have
       if (agent.activeClients !== tomTicketCount) {
         console.log(`Updating ${agent.name} (TomTicket: ${tomticketName}): from ${agent.activeClients} to ${tomTicketCount}`);
         batch.update(agentRef, { 
           activeClients: tomTicketCount,
-          lastInteractionTime: now
+          lastInteractionTime: now // Update interaction time on any change
         });
         updatesMade++;
       }
