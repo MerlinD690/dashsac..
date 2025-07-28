@@ -110,17 +110,17 @@ async function getActiveTickets(): Promise<TomTicketChat[]> {
                 cache: 'no-store',
             });
             
-            const data: TomTicketApiResponse = await response.json();
-
             if (!response.ok) {
-                console.error('TomTicket API Error:', {
+                 const errorBody = await response.text();
+                 console.error('TomTicket API Error:', {
                     status: response.status,
                     statusText: response.statusText,
-                    body: data
+                    body: errorBody
                 });
-                const errorMessage = data.message || `HTTP error! status: ${response.status}`;
-                throw new Error(`Erro na API TomTicket: ${errorMessage}`);
+                throw new Error(`Erro na API TomTicket: HTTP status ${response.status}`);
             }
+
+            const data: TomTicketApiResponse = await response.json();
             
             if (data.data && data.data.length > 0) {
                 allTickets = allTickets.concat(data.data);
@@ -219,3 +219,4 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync", dataSample: [] };
   }
 }
+
