@@ -86,7 +86,7 @@ async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
         const response = await fetch(url.toString(), {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${apiToken}`,
+                'authorization': `Bearer ${apiToken}`,
             },
             cache: 'no-store',
         });
@@ -113,7 +113,6 @@ async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
 export async function syncTomTicketData() {
   console.log("Starting TomTicket data sync...");
   try {
-    // DIAGNOSTIC STEP: Hardcode the token to eliminate environment variable issues.
     const apiToken = "9a152bbee93cb69a54e99ca1070ba6e0aba9d8e086b65916a7e364c87057323c";
     
     if (!apiToken) {
