@@ -3,7 +3,7 @@ import type { AgentDocument } from './types';
 
 export const seedAgentsData: AgentDocument[] = [
   {
-    name: 'Ana Silva',
+    name: 'GUILHERME',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -12,7 +12,7 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'Bruno Costa',
+    name: 'GABRIEL',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -21,7 +21,7 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'Carla Dias',
+    name: 'TAINÁ',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -30,7 +30,7 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'Daniel Martins',
+    name: 'JOSÉ',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -39,7 +39,16 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'Beatriz Almeida',
+    name: 'VITÓRIA',
+    lastInteractionTime: new Date().toISOString(),
+    activeClients: 0,
+    isAvailable: true,
+    totalClientsHandled: 0,
+    avgTimePerClient: 0,
+    isOnPause: false,
+  },
+  {
+    name: 'JULIANA',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
