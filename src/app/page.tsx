@@ -24,6 +24,19 @@ const initialAgentsData: Omit<Agent, 'id' | 'lastInteractionTime' | 'activeClien
     { name: 'Giovanna' },
 ];
 
+function initializeAgents() {
+    return initialAgentsData.map((agent, index) => ({
+        id: `agent-${index + 1}`,
+        name: agent.name,
+        lastInteractionTime: new Date().toISOString(),
+        activeClients: 0,
+        isAvailable: true,
+        totalClientsHandled: 0,
+        avgTimePerClient: 0,
+        isOnPause: false,
+    }));
+}
+
 
 function OmoLogo() {
   return (
@@ -47,6 +60,15 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if Supabase keys are placeholders. If so, use mock data.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl || supabaseUrl === 'YOUR_SUPABASE_URL') {
+        console.warn("Supabase keys not configured. Using initial mock data.");
+        setAgents(initializeAgents());
+        setIsLoading(false);
+        return;
+    }
+
     try {
       const supabase = getSupabase();
       
@@ -59,18 +81,7 @@ export default function Home() {
             title: 'Erro ao carregar dados',
             description: 'Não foi possível buscar os dados dos atendentes. Verifique a conexão com o Supabase.'
           })
-          // Seed data if table is empty or doesn't exist
-           const initializedAgents = initialAgentsData.map((agent, index) => ({
-            id: `agent-${index + 1}`,
-            name: agent.name,
-            lastInteractionTime: new Date().toISOString(),
-            activeClients: 0,
-            isAvailable: true,
-            totalClientsHandled: 0,
-            avgTimePerClient: 0,
-            isOnPause: false,
-          }));
-          setAgents(initializedAgents);
+          setAgents(initializeAgents()); // Fallback to initial data on error
         } else {
           setAgents(data || []);
         }
