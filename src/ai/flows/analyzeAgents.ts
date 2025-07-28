@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview An AI flow to analyze agent performance data.
  */
@@ -8,7 +9,7 @@ import { AnalysisInput, AnalysisInputSchema, AnalysisOutput, AnalysisOutputSchem
 
 const analysisPrompt = ai.definePrompt({
   name: 'analysisPrompt',
-  model: 'gemini-pro',
+  model: 'googleai/gemini-pro',
   input: { schema: AnalysisInputSchema },
   output: { schema: AnalysisOutputSchema },
   prompt: `Você é um analista de dados especialista em performance de contact centers.
