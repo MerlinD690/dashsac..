@@ -33,7 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Hardcoded password for the analysis feature
-const ANALYSIS_PASSWORD = "omo123456789";
+const ANALYSIS_PASSWORD = "Omo123456789.";
 
 function AnalysisResult({ result }: { result: AnalysisOutput }) {
   return (
