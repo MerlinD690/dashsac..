@@ -29,9 +29,6 @@ const nextConfig: NextConfig = {
     '@opentelemetry/sdk-trace-node',
     '@opentelemetry/exporter-jaeger',
   ],
-  env: {
-    TOMTICKET_API_TOKEN: process.env.TOMTICKET_API_TOKEN,
-  }
 };
 
 export default nextConfig;

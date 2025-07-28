@@ -1,5 +1,7 @@
 'use server';
 
+require('dotenv').config();
+
 import { db } from '@/lib/firebase';
 import { AgentDocument, PauseLogDocument, DailyReport, TomTicketChat, TomTicketApiResponse } from '@/lib/types';
 import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc } from 'firebase/firestore';
