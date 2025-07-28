@@ -133,15 +133,12 @@ export async function syncTomTicketData() {
   try {
     const allChats = await getActiveChats();
     
-    // LOGIC CHANGE: We no longer filter by situation.
-    // We now count any chat that has an assigned operator as "active" for our purposes.
     const activeChats = allChats.filter(chat => chat.operator && chat.operator.name);
     
     console.log(`SERVER_SYNC: Found ${allChats.length} total chats from API. Found ${activeChats.length} assigned chats.`);
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
-      // Garante que o operador existe e tem um nome antes de processar
       const agentName = chat.operator?.name; 
       if (agentName) {
         if (!agentChatCounts[agentName]) {
@@ -150,6 +147,7 @@ export async function syncTomTicketData() {
         agentChatCounts[agentName]++;
       }
     }
+    // Novo Log Detalhado
     console.log("SERVER_SYNC: Counted active TomTicket agent chats:", agentChatCounts);
 
     const agentsCollection = collection(db, 'AtendimentoSAC');
@@ -160,16 +158,16 @@ export async function syncTomTicketData() {
     
     const updateLog: string[] = [];
 
-    // Itera sobre os documentos de agentes do Firestore
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
       
       const tomticketName = agent.tomticketName;
-      // Pega a contagem do TomTicket para o nome correspondente. Se não houver, considera 0.
+      // Novo Log de Verificação
+      console.log(`SERVER_SYNC: Checking Firestore agent '${agent.name}' with tomticketName: '${tomticketName}'`);
+
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
-      // Compara a contagem da API com a contagem atual no Firestore
       if (agent.activeClients !== tomTicketCount) {
         const logMessage = `Updating ${agent.name} (TomTicket: ${tomticketName}): Firestore count ${agent.activeClients} -> API count ${tomTicketCount}`;
         console.log(`SERVER_SYNC: ${logMessage}`);
@@ -177,7 +175,7 @@ export async function syncTomTicketData() {
 
         batch.update(agentRef, { 
           activeClients: tomTicketCount,
-          lastInteractionTime: now // Atualiza o tempo da última interação
+          lastInteractionTime: now
         });
         updatesMade++;
       }
@@ -190,7 +188,6 @@ export async function syncTomTicketData() {
         console.log("SERVER_SYNC: No changes in active client counts. No Firestore update needed.");
     }
     
-    // Retorna um objeto detalhado para o cliente
     return { 
         success: true, 
         message: "Sync successful",
@@ -199,7 +196,6 @@ export async function syncTomTicketData() {
         agentChatCounts,
         updatesMade,
         updateLog,
-        // Adicionando uma amostra dos dados para depuração
         dataSample: allChats.slice(0, 5) 
     };
   } catch (error) {
@@ -210,4 +206,3 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync", dataSample: [] };
   }
 }
-
