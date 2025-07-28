@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
+import RealTimeClock from './RealTimeClock';
+import ClientOnly from './ClientOnly';
 
 // Function to play a simple beep sound
 function playNotificationSound() {
@@ -209,6 +211,11 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
             })}
           </TableBody>
         </Table>
+        <div className="flex items-center justify-end p-2 border-t">
+            <ClientOnly>
+                <RealTimeClock />
+            </ClientOnly>
+        </div>
       </div>
     </TooltipProvider>
   );

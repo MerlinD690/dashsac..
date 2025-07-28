@@ -6,7 +6,6 @@ import type { Agent, PauseLog } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
 import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
-import RealTimeClock from '@/components/RealTimeClock';
 import { Progress } from '@/components/ui/progress';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
 
@@ -71,11 +70,11 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-4">
              <OmoLogo />
-            <h1 className="text-3xl font-bold font-headline tracking-tight text-primary">
+            <h1 className="text-3xl font-bold font-headline tracking-tight text-blue-600">
               Atendimento Sac
             </h1>
           </div>
@@ -101,11 +100,6 @@ export default function Home() {
         )}
         
       </main>
-      <footer className="fixed bottom-4 right-8 z-50 md:bottom-8 md:right-10">
-          <ClientOnly>
-              <RealTimeClock />
-          </ClientOnly>
-      </footer>
     </div>
   );
 }
