@@ -5,14 +5,14 @@ import { useState } from 'react';
 import { CornerDownLeft, Bot, Sparkles, LoaderCircle } from 'lucide-react';
 import { runFlow } from '@genkit-ai/next/client';
 import type { MessageData } from 'genkit/experimental/ai';
-import { assistant } from '@/ai/flows/assistant';
+import { assistant, AssistantInput } from '@/ai/flows/assistant';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Agent, PauseLog, AssistantInput } from '@/lib/types';
+import { Agent, PauseLog } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 type AssistantProps = {
@@ -58,7 +58,7 @@ export function Assistant({ agents, pauseLogs }: AssistantProps) {
         toast({
             variant: 'destructive',
             title: 'Erro do Assistente',
-            description: 'Não foi possível obter uma resposta da IA. Verifique se a chave da API está configurada corretamente.',
+            description: 'Não foi possível obter uma resposta da IA. Verifique se a chave da API está configurada corretamente no arquivo .env.',
         });
         setMessages(prev => [...prev, { role: 'model', content: [{ text: "Desculpe, não consegui processar sua solicitação." }] }]);
     } finally {

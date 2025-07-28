@@ -46,10 +46,3 @@ export interface PauseLogDocument extends Omit<PauseLog, 'pauseStartTime' | 'pau
     pauseStartTime: Timestamp;
     pauseEndTime: Timestamp;
 }
-
-export const AssistantInputSchema = z.object({
-  history: z.array(z.custom<MessageData>()),
-  agents: z.array(AgentSchema),
-});
-
-export type AssistantInput = z.infer<typeof AssistantInputSchema>;

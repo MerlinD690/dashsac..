@@ -4,7 +4,14 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { MessageData } from 'genkit/experimental/ai';
-import { Agent, AssistantInputSchema, AssistantInput } from '@/lib/types';
+import { AgentSchema } from '@/lib/types';
+
+export const AssistantInputSchema = z.object({
+    history: z.array(z.custom<MessageData>()),
+    agents: z.array(AgentSchema),
+});
+export type AssistantInput = z.infer<typeof AssistantInputSchema>;
+
 
 const assistantPrompt = ai.definePrompt(
     {
@@ -32,6 +39,7 @@ const assistantPrompt = ai.definePrompt(
       Se a pergunta for "Melhor Performance", identifique o atendente com o maior 'totalClientsHandled' e informe o nome dele e seu 'avgTimePerClient'.
       Se a pergunta for "Resumo Geral", forneça um breve resumo dos clientes totais atendidos e o status geral dos atendentes (quantos estão disponíveis, em pausa, etc.).
       Se a pergunta for "Quem está em pausa?", liste os nomes dos atendentes onde 'isOnPause' é verdadeiro.
+      Para outras perguntas, use os dados disponíveis para formular a melhor resposta possível.
       `,
     }
   );
@@ -43,7 +51,7 @@ export const assistant = ai.defineFlow(
     outputSchema: z.string(),
   },
   async (input) => {
-    const {output} = await assistantPrompt(input);
+    const { output } = await assistantPrompt(input);
     return output ?? "Desculpe, não consegui processar sua solicitação no momento.";
   }
 );
