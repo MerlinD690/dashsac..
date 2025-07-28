@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { MessageData } from 'genkit/experimental/ai';
 import { Agent, AssistantInputSchema, AssistantInput } from '@/lib/types';
 
-export const assistant = ai.defineFlow(
+const assistantFlow = ai.defineFlow(
   {
     name: 'assistant',
     inputSchema: AssistantInputSchema,
@@ -52,3 +52,7 @@ export const assistant = ai.defineFlow(
     return llmResponse.text();
   }
 );
+
+export async function assistant(input: AssistantInput): Promise<string> {
+    return await assistantFlow(input);
+}
