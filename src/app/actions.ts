@@ -93,7 +93,6 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 
 async function getActiveChats(): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
-    // O token agora é lido diretamente do ambiente do servidor.
     const apiToken = process.env.TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
@@ -101,8 +100,8 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
     }
 
     try {
+        // A API espera o formato 'YYYY-MM-DD HH:mm:ss'.
         const fiveMinutesAgo = subMinutes(new Date(), 5);
-        // Formato Exato: YYYY-MM-DD HH:mm:ss, conforme a documentação e o erro "Invalid Date"
         const formattedDate = format(fiveMinutesAgo, 'yyyy-MM-dd HH:mm:ss');
         
         const url = new URL(`${TOMTICKET_API_URL}/chat/list`);
@@ -111,9 +110,10 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
         const response = await fetch(url.toString(), {
             method: 'GET',
             headers: {
+                // Formato exato: "Bearer " com espaço seguido do token.
                 'Authorization': `Bearer ${apiToken}`,
             },
-            cache: 'no-store',
+            cache: 'no-store', // Garante que não estamos vendo uma resposta antiga em cache
         });
         
         const data: TomTicketApiResponse = await response.json();
@@ -135,6 +135,7 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
     } catch (error) {
         console.error('Falha ao buscar chats do TomTicket:', error);
         if (error instanceof Error) {
+            // Repassa a mensagem de erro específica para o cliente
             throw new Error(`Falha na comunicação com a API TomTicket: ${error.message}`);
         }
         throw new Error("Ocorreu um erro desconhecido ao buscar chats do TomTicket.");
@@ -147,6 +148,7 @@ export async function syncTomTicketData() {
   try {
     const allChats = await getActiveChats();
     
+    // Filtramos aqui para garantir que temos os chats corretos
     const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
     console.log(`Found ${allChats.length} total chats in the last 5 minutes. Found ${activeChats.length} active chats (situation 1 or 2).`);
 
@@ -173,14 +175,15 @@ export async function syncTomTicketData() {
       const agentRef = doc.ref;
       
       const tomticketName = agent.tomticketName;
+      // O nome no TomTicket pode não ser exatamente igual, então vamos ser flexíveis
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
-      // We only update if the count from TomTicket is different from what we have
+      // Apenas atualizamos se a contagem for diferente
       if (agent.activeClients !== tomTicketCount) {
         console.log(`Updating ${agent.name} (TomTicket: ${tomticketName}): from ${agent.activeClients} to ${tomTicketCount}`);
         batch.update(agentRef, { 
           activeClients: tomTicketCount,
-          lastInteractionTime: now // Update interaction time on any change
+          lastInteractionTime: now // Atualiza o tempo de interação em qualquer mudança
         });
         updatesMade++;
       }
@@ -202,5 +205,6 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync" };
   }
 }
+    
 
     
