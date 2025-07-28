@@ -238,11 +238,11 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
 
 
   const handleTogglePause = (agent: Agent) => {
-    if (agent.activeClients > 0) {
+    if (!agent.isAvailable || agent.activeClients > 0) {
       toast({
         variant: 'destructive',
         title: 'Ação não permitida',
-        description: 'Não é possível pausar um atendente com clientes ativos.',
+        description: 'Não é possível pausar um atendente indisponível ou com clientes ativos.',
       });
       return;
     }
@@ -334,7 +334,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                   <TableCell className="text-center">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0}>
+                        <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0 || agent.isOnPause}>
                           <Coffee className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
@@ -344,20 +344,24 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                     </Tooltip>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div onClick={() => handleAvailabilitySwitchClick(agent)} className="inline-block">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Switch
-                                    checked={agent.isAvailable}
-                                    disabled={agent.activeClients > 0 || agent.isOnPause}
-                                    style={{ pointerEvents: 'none' }} 
-                                />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Clique para alterar a disponibilidade (requer senha)</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Switch
+                                checked={agent.isAvailable}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleAvailabilitySwitchClick(agent);
+                                }}
+                                disabled={agent.activeClients > 0 || agent.isOnPause}
+                                style={{
+                                    pointerEvents: (agent.activeClients > 0 || agent.isOnPause) ? 'none' : 'auto'
+                                }}
+                            />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Clique para alterar a disponibilidade (requer senha)</p>
+                        </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               );
