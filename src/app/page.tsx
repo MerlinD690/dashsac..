@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { Agent, PauseLog } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
 import { ExportButton } from '@/components/ExportButton';
@@ -9,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Zap } from 'lucide-react';
 import { clearAndSeedAgents, syncTomTicketData } from './actions';
