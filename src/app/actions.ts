@@ -125,6 +125,8 @@ async function getActiveTickets(): Promise<TomTicketChat[]> {
             if (data.data && data.data.length > 0) {
                 allTickets = allTickets.concat(data.data);
                 page++;
+                 // Add a small delay to avoid hitting rate limits
+                await new Promise(resolve => setTimeout(resolve, 250));
             } else {
                 hasMorePages = false;
             }
@@ -219,4 +221,5 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync", dataSample: [] };
   }
 }
+
 
