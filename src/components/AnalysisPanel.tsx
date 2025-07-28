@@ -100,7 +100,7 @@ function AnalysisResult({ result, totalClients }: { result: AnalysisOutput, tota
               <p className="font-medium">{agent.name}</p>
               <div className='text-right'>
                 <p>{agent.clientsHandled} clientes</p>
-                <p className="text-xs text-muted-foreground">{agent.totalPauseTime}</p>
+                <p className="text-xs text-muted-foreground">{agent.totalPauseTime} de pausa</p>
               </div>
             </div>
           ))}
