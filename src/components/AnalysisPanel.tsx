@@ -26,7 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input"
 import { Bot, Users, Activity, Lock, Award } from 'lucide-react';
-import { Agent, PauseLog, AnalysisOutput } from '@/lib/types';
+import { Agent, PauseLog, AnalysisOutput, AgentWithPauseData } from '@/lib/types';
 import { analyzeAgents } from '@/ai/flows/analyzeAgents';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -151,6 +151,25 @@ function LoadingSkeleton() {
     )
 }
 
+function calculateAndFormatPauseTime(agentName: string, logs: PauseLog[]): string {
+    const agentPauseLogs = logs.filter(log => log.agentName === agentName);
+    const totalPauseMilliseconds = agentPauseLogs.reduce((acc, log) => {
+        const startTime = new Date(log.pauseStartTime).getTime();
+        const endTime = new Date(log.pauseEndTime).getTime();
+        return acc + (endTime - startTime);
+    }, 0);
+
+    const totalSeconds = Math.floor(totalPauseMilliseconds / 1000);
+
+    if (totalSeconds < 60) {
+        return `${totalSeconds} segundos`;
+    } else {
+        const totalMinutes = Math.round(totalSeconds / 60);
+        return `${totalMinutes} minutos`;
+    }
+}
+
+
 export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLogs: PauseLog[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisOutput | null>(null);
@@ -181,7 +200,13 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
     setIsLoading(true);
     setAnalysisResult(null);
     try {
-      const result = await analyzeAgents({ agents, pauseLogs });
+      // Pré-processamento dos dados do agente para incluir o tempo de pausa formatado
+      const agentsWithPauseData: AgentWithPauseData[] = agents.map(agent => ({
+        ...agent,
+        totalPauseTimeFormatted: calculateAndFormatPauseTime(agent.name, pauseLogs),
+      }));
+      
+      const result = await analyzeAgents({ agents: agentsWithPauseData });
       setAnalysisResult(result);
     } catch (error) {
       console.error('AI analysis failed:', error);

@@ -28,6 +28,15 @@ export const AgentSchema = z.object({
   pauseStartTime: z.string().optional(),
 });
 
+// This type is used when passing data to the AI, it includes the pre-calculated pause time.
+export interface AgentWithPauseData extends Agent {
+  totalPauseTimeFormatted: string;
+}
+
+export const AgentWithPauseDataSchema = AgentSchema.extend({
+  totalPauseTimeFormatted: z.string(),
+});
+
 
 export interface PauseLog {
   id?: string;
@@ -57,8 +66,7 @@ export interface PauseLogDocument extends Omit<PauseLog, 'pauseStartTime' | 'pau
 
 // AI Related types
 export const AnalysisInputSchema = z.object({
-  agents: z.array(AgentSchema),
-  pauseLogs: z.array(PauseLogSchema),
+  agents: z.array(AgentWithPauseDataSchema),
 });
 export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
 
@@ -66,7 +74,7 @@ export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
 const AgentPerformanceSchema = z.object({
     name: z.string().describe('Nome do atendente.'),
     clientsHandled: z.number().describe('Total de clientes atendidos.'),
-    totalPauseTime: z.string().describe('Tempo total de pausa formatado como "X minutos" ou "Y segundos".'),
+    totalPauseTime: z.string().describe('Tempo total de pausa formatado (ex: "X minutos" ou "Y segundos"). Este valor já vem calculado.'),
 });
 
 const AgentIdentifierSchema = z.object({
