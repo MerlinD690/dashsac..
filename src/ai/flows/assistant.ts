@@ -3,10 +3,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { MessageData } from 'genkit/experimental/ai';
+import type { MessageData } from 'genkit/experimental/ai';
 import { Agent, AssistantInputSchema, AssistantInput } from '@/lib/types';
 
-const assistantFlow = ai.defineFlow(
+export const assistant = ai.defineFlow(
   {
     name: 'assistant',
     inputSchema: AssistantInputSchema,
@@ -52,7 +52,3 @@ const assistantFlow = ai.defineFlow(
     return llmResponse.text();
   }
 );
-
-export async function assistant(input: AssistantInput): Promise<string> {
-    return await assistantFlow(input);
-}
