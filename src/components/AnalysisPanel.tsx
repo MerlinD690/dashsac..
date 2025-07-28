@@ -35,6 +35,8 @@ import { addDailyReport, getDailyReports } from '@/app/actions';
 
 // Hardcoded password for the analysis feature
 const ANALYSIS_PASSWORD = "Omo123456789.";
+const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL === 'YOUR_SUPABASE_URL';
+
 
 function AnalysisResult({ result, totalClients }: { result: AnalysisOutput, totalClients: number }) {
   return (
@@ -225,7 +227,7 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
       const totalClients = agents.reduce((acc, agent) => acc + agent.totalClientsHandled, 0);
       setTotalClientsToday(totalClients);
       
-      const historicalData = await getDailyReports(30);
+      const historicalData = isDemoMode ? [] : await getDailyReports(30);
       
       const result = await analyzeAgents({ 
           agents: agentsWithPauseData, 
@@ -235,16 +237,18 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
 
       setAnalysisResult(result);
 
-      // Save the new report, but without the historical analysis part to avoid data duplication
-      const { historicalAnalysis, ...reportToSave } = result;
-      await addDailyReport(reportToSave);
+      if (!isDemoMode) {
+          // Save the new report, but without the historical analysis part to avoid data duplication
+          const { historicalAnalysis, ...reportToSave } = result;
+          await addDailyReport(reportToSave);
+      }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI analysis failed:', error);
       toast({
         variant: 'destructive',
         title: 'Erro na Análise',
-        description: 'A IA não conseguiu processar os dados. Tente novamente.',
+        description: error.message || 'A IA não conseguiu processar os dados. Tente novamente.',
       });
     } finally {
       setIsLoading(false);
