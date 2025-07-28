@@ -124,6 +124,9 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
                         return { success: false, data: [] }; // Return empty on error to not break Promise.all
                     }
                     return res.json() as Promise<TomTicketApiResponse>;
+                }).catch(err => {
+                    console.error(`Network error fetching page ${page}:`, err);
+                    return { success: false, data: [] }; // Handle network errors as well
                 });
                 pagePromises.push(promise);
             }
@@ -144,7 +147,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         if (error instanceof Error) {
             throw new Error(`Communication failure with TomTicket API: ${error.message}`);
         }
-        throw new Error("An unknown error occurred while fetching chats from TomTicket.");
+        throw new Error("An unexpected response was received from the server.");
     }
 }
 
@@ -158,8 +161,9 @@ export async function syncTomTicketData() {
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
-      const agentName = chat.operator?.name; 
-      if (agentName) {
+      // Only count chats that have an assigned operator
+      if (chat.operator && chat.operator.name) {
+        const agentName = chat.operator.name; 
         agentChatCounts[agentName] = (agentChatCounts[agentName] || 0) + 1;
       }
     }
@@ -169,16 +173,12 @@ export async function syncTomTicketData() {
     const agentsSnapshot = await getDocs(agentsCollection);
     const batch = writeBatch(db);
     const now = new Date().toISOString();
-    let updatesMade = 0;
     
     const updateLog: string[] = [];
 
-    // Reset all agents' client counts to 0 before applying new counts
-    agentsSnapshot.docs.forEach(doc => {
-        batch.update(doc.ref, { activeClients: 0 });
-    });
+    // This map will store which agents from Firestore were found in the API response
+    const activeAgentsFromApi = new Set(Object.keys(agentChatCounts));
 
-    // Apply the new counts from the API
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
@@ -191,25 +191,31 @@ export async function syncTomTicketData() {
 
       batch.update(agentRef, { 
         activeClients: tomTicketCount,
+        // Only update lastInteractionTime if they are currently active
         ...(tomTicketCount > 0 && { lastInteractionTime: now })
       });
-      updatesMade++;
-    });
 
-    if (updatesMade > 0) {
-        await batch.commit();
-        console.log(`SERVER_SYNC: Firestore batch commit successful. Updated ${updatesMade} agents.`);
-    } else {
-        await batch.commit(); // commit the reset even if no chats are active
-        console.log("SERVER_SYNC: No agents to update, but reset batch committed.");
+      // Remove the agent from the set if they were found and updated
+      if (tomticketName) {
+        activeAgentsFromApi.delete(tomticketName);
+      }
+    });
+    
+    // Log agents from API that were not found in Firestore
+    if (activeAgentsFromApi.size > 0) {
+      console.warn("SERVER_SYNC: Agents from TomTicket API not found in Firestore seed data:", Array.from(activeAgentsFromApi));
+      updateLog.push(`Warning: ${activeAgentsFromApi.size} agents from API response were not found in Firestore: ${Array.from(activeAgentsFromApi).join(', ')}`);
     }
+
+    await batch.commit();
+    console.log(`SERVER_SYNC: Firestore batch commit successful. Synced ${agentsSnapshot.docs.length} agents.`);
     
     return { 
         success: true, 
         message: "Sync successful",
         activeChats: activeChats.length,
         agentChatCounts: agentChatCounts,
-        updatesMade,
+        updatesMade: agentsSnapshot.docs.length,
         updateLog,
         dataSample: activeChats.slice(0, 5) 
     };
@@ -218,6 +224,7 @@ export async function syncTomTicketData() {
     if (error instanceof Error) {
         return { success: false, message: error.message, dataSample: [] };
     }
-    return { success: false, message: "An unknown error occurred during sync", dataSample: [] };
+    return { success: false, message: "An unknown error occurred during sync.", dataSample: [] };
   }
 }
+

@@ -81,7 +81,10 @@ export default function Home() {
     let isSyncingRef = false; 
 
     const handleSync = async () => {
-      if (isSyncingRef) return;
+      if (isSyncingRef) {
+        console.log("SYNC_CLIENT: Sync already in progress, skipping.");
+        return;
+      }
 
       isSyncingRef = true;
       setIsSyncing(true);
