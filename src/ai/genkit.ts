@@ -18,6 +18,6 @@ if (process.env.GEMINI_API_KEY) {
 
 export const ai = genkit({
   plugins,
-  logSinks: process.env.NODE_ENV === 'development' ? ['dev'] : [],
-  enableTracing: process.env.NODE_ENV === 'development',
+  logSinks: [],
+  enableTracing: false,
 });
