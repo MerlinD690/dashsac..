@@ -5,9 +5,11 @@
 
 import { ai } from '@/ai/genkit';
 import { AnalysisInput, AnalysisInputSchema, AnalysisOutput, AnalysisOutputSchema } from '@/lib/types';
+import { googleAI } from '@genkit-ai/googleai';
 
 const analysisPrompt = ai.definePrompt({
   name: 'analysisPrompt',
+  model: 'googleai/gemini-pro',
   input: { schema: AnalysisInputSchema },
   output: { schema: AnalysisOutputSchema },
   prompt: `Você é um analista de dados especialista em performance de contact centers.
