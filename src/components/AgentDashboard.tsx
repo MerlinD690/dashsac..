@@ -18,7 +18,7 @@ import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
 import ClientOnly from './ClientOnly';
 import { addPauseLog, updateAgent } from '@/app/actions';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Function to play a simple beep sound
 function playNotificationSound() {
@@ -56,6 +56,33 @@ const findNextBestAgent = (agents: Agent[]): string | null => {
     });
 
   return availableAgents.length > 0 ? availableAgents[0].id : null;
+};
+
+// Component to show a running timer for the pause
+const PauseTimer = ({ startTime }: { startTime: string }) => {
+    const [elapsedTime, setElapsedTime] = useState('');
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            const now = new Date().getTime();
+            const start = new Date(startTime).getTime();
+            const difference = now - start;
+
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+            const paddedHours = hours.toString().padStart(2, '0');
+            const paddedMinutes = minutes.toString().padStart(2, '0');
+            const paddedSeconds = seconds.toString().padStart(2, '0');
+            
+            setElapsedTime(`${paddedHours}:${paddedMinutes}:${paddedSeconds}`);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [startTime]);
+
+    return <span className="text-xs font-mono text-yellow-600 ml-2">{elapsedTime}</span>;
 };
 
 
@@ -257,6 +284,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                     <div className={cn('flex items-center gap-2 font-medium', status.className)}>
                       {status.icon}
                       <span>{status.text}</span>
+                      {agent.isOnPause && agent.pauseStartTime && <PauseTimer startTime={agent.pauseStartTime} />}
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
