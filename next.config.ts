@@ -20,8 +20,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: [
+  serverExternalPackages: [
       'firebase-admin',
       'firebase-functions',
       'stream-native',
@@ -30,7 +29,6 @@ const nextConfig: NextConfig = {
       '@opentelemetry/sdk-trace-node',
       '@opentelemetry/exporter-jaeger',
     ],
-  },
 };
 
 export default nextConfig;
