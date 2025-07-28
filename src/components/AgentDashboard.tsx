@@ -163,24 +163,24 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
               return (
                 <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 hover:bg-primary/30")}>
                   <TableCell>
-                    <div className={cn("font-medium", isNextAgent ? 'text-primary-foreground' : '')}>
+                    <div className={cn("font-medium", isNextAgent && "font-bold")}>
                       {agent.name}
                     </div>
                   </TableCell>
-                  <TableCell>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className={cn(isNextAgent && "font-bold")}>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
+                  <TableCell>
                     <div className="flex items-center justify-center gap-2">
-                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40')} onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
+                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
                               <Minus className="h-4 w-4" />
                           </Button>
-                          <span className="w-4 font-bold text-lg">{agent.activeClients}</span>
-                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40')} onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
+                          <span className={cn("w-4 text-lg", isNextAgent ? "font-bold" : "font-medium")}>{agent.activeClients}</span>
+                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
                               <Plus className="h-4 w-4" />
                           </Button>
                       </div>
                   </TableCell>
                   <TableCell>
-                    <div className={cn('flex items-center gap-2 font-medium', status.className, isNextAgent && "text-primary-foreground/80")}>
+                    <div className={cn('flex items-center gap-2 font-medium', status.className)}>
                       {status.icon}
                       <span>{status.text}</span>
                     </div>
