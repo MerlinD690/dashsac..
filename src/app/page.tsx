@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { clearAndSeedAgents } from './actions';
@@ -39,26 +39,57 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const q = query(collection(db, "AtendimentoSAC"));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      // Listener for Agents data
+      const agentsQuery = query(collection(db, "AtendimentoSAC"));
+      const unsubscribeAgents = onSnapshot(agentsQuery, (querySnapshot) => {
         const agentsData: Agent[] = [];
         querySnapshot.forEach((doc) => {
           agentsData.push({ id: doc.id, ...doc.data() } as Agent);
         });
         setAgents(agentsData);
-        setIsLoading(false);
+        if (isLoading) setIsLoading(false); // Set loading to false after first fetch
       }, (err) => {
           console.error("Error fetching agents from Firestore:", err);
           toast({
             variant: 'destructive',
-            title: 'Erro ao carregar dados',
-            description: 'Não foi possível buscar os dados dos atendentes. Verifique a conexão e as regras de segurança do Firestore.'
+            title: 'Erro ao carregar dados dos atendentes',
+            description: 'Não foi possível buscar os dados. Verifique a conexão e as regras do Firestore.'
           });
-          setError('Falha na conexão em tempo real com o Firestore.');
+          setError('Falha na conexão em tempo real com o Firestore para atendentes.');
           setIsLoading(false);
       });
+
+      // Listener for today's Pause Logs data
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const pauseLogsQuery = query(
+        collection(db, "pause_logs"),
+        where("pauseStartTime", ">=", startOfDay.toISOString()),
+        where("pauseStartTime", "<=", endOfDay.toISOString())
+      );
+      const unsubscribePauseLogs = onSnapshot(pauseLogsQuery, (querySnapshot) => {
+        const logsData: PauseLog[] = [];
+        querySnapshot.forEach((doc) => {
+          logsData.push({ id: doc.id, ...doc.data() } as PauseLog);
+        });
+        setPauseLogs(logsData);
+      }, (err) => {
+          console.error("Error fetching pause logs from Firestore:", err);
+          toast({
+            variant: 'destructive',
+            title: 'Erro ao carregar pausas',
+            description: 'Não foi possível buscar os registros de pausas do dia.'
+          });
+          // We don't set a blocking error for this, as the main functionality can still work
+      });
         
-      return () => unsubscribe();
+      return () => {
+        unsubscribeAgents();
+        unsubscribePauseLogs();
+      };
     } catch (e: any) {
         console.error(e.message);
         setError(e.message);
@@ -68,7 +99,7 @@ export default function Home() {
   
   const handleAddPauseLog = (log: Omit<PauseLog, 'id'>) => {
       // With Firestore, we don't need to manage pause logs in local state
-      // as they are written directly to the DB by the server action
+      // as they are written directly to the DB by the server action and listened to by onSnapshot
   };
 
   const handleSeedData = async () => {
