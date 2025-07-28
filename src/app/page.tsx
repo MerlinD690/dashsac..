@@ -38,10 +38,9 @@ export default function Home() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  // Firestore real-time listeners
   useEffect(() => {
     try {
-      // Listener for Agents data
       const agentsQuery = query(collection(db, "AtendimentoSAC"));
       const unsubscribeAgents = onSnapshot(agentsQuery, (querySnapshot) => {
         const agentsData: Agent[] = [];
@@ -49,19 +48,14 @@ export default function Home() {
           agentsData.push({ id: doc.id, ...doc.data() } as Agent);
         });
         setAgents(agentsData);
-        if (isLoading) setIsLoading(false); // Set loading to false after first fetch
+        if (isLoading) setIsLoading(false);
       }, (err) => {
           console.error("Error fetching agents from Firestore:", err);
-          toast({
-            variant: 'destructive',
-            title: 'Erro ao carregar dados dos atendentes',
-            description: 'Não foi possível buscar os dados. Verifique a conexão e as regras do Firestore.'
-          });
+          toast({ variant: 'destructive', title: 'Erro de Conexão com Firestore' });
           setError('Falha na conexão em tempo real com o Firestore para atendentes.');
           setIsLoading(false);
       });
 
-      // Listener for today's Pause Logs data
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date();
@@ -78,14 +72,6 @@ export default function Home() {
           logsData.push({ id: doc.id, ...doc.data() } as PauseLog);
         });
         setPauseLogs(logsData);
-      }, (err) => {
-          console.error("Error fetching pause logs from Firestore:", err);
-          toast({
-            variant: 'destructive',
-            title: 'Erro ao carregar pausas',
-            description: 'Não foi possível buscar os registros de pausas do dia.'
-          });
-          // We don't set a blocking error for this, as the main functionality can still work
       });
         
       return () => {
@@ -99,6 +85,41 @@ export default function Home() {
     }
   }, [isLoading, toast]);
   
+  // TomTicket API sync logic
+  useEffect(() => {
+    const handleSync = async () => {
+      if (isSyncing) return;
+      setIsSyncing(true);
+      try {
+        const result = await syncTomTicketData();
+        if (!result.success) {
+          toast({
+            variant: 'destructive',
+            title: 'Erro de Sincronização',
+            description: result.message || 'Ocorreu um erro desconhecido.',
+          });
+        }
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro Crítico de Sincronização',
+          description: error.message,
+        });
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    // Initial sync
+    handleSync();
+
+    // Set up interval for subsequent syncs
+    const intervalId = setInterval(handleSync, 15000); // Sync every 15 seconds
+
+    return () => clearInterval(intervalId);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We only want this to run once on mount
+  }, []);
+
   const handleSeedData = async () => {
     setIsSeeding(true);
     try {
@@ -118,42 +139,6 @@ export default function Home() {
       setIsSeeding(false);
     }
   };
-
-  const handleSyncData = useCallback(async () => {
-    setIsSyncing(true);
-    try {
-      const result = await syncTomTicketData();
-      if (result.success) {
-        toast({
-          title: "Sincronização Concluída",
-          description: `Dados do TomTicket atualizados. ${result.updatesMade} atendentes sincronizados.`,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Erro de Sincronização',
-          description: result.message || 'Ocorreu um erro desconhecido.',
-        });
-      }
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro Crítico de Sincronização',
-        description: error.message,
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [toast]);
-
-  // Initial sync on load
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-  useEffect(() => {
-    if (!isLoading) {
-      handleSyncData();
-    }
-  }, [isLoading, handleSyncData]);
-
 
   if (error) {
     return (
@@ -178,10 +163,7 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={handleSyncData} variant="outline" size="sm" disabled={isSyncing}>
-              <Zap className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}
-            </Button>
+             {isSyncing && <Zap className="h-4 w-4 animate-spin text-primary" />}
             <Button onClick={handleSeedData} variant="outline" size="sm" disabled={isSeeding}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isSeeding ? 'animate-spin' : ''}`} />
               {isSeeding ? 'Resetando...' : 'Resetar Dados'}

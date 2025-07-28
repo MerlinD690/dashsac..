@@ -1,4 +1,3 @@
-
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -93,46 +92,36 @@ async function getActiveTickets(): Promise<TomTicketChat[]> {
         throw new Error('API token (TOMTICKET_API_TOKEN) is not available in server environment.');
     }
 
-    let allTickets: TomTicketChat[] = [];
-    let page = 1;
-    let hasMorePages = true;
-
     try {
-        while (hasMorePages) {
-            const url = `${TOMTICKET_API_URL}/ticket/list?page=${page}`;
-            console.log(`Fetching page ${page} from TomTicket...`);
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiToken}`,
-                },
-                cache: 'no-store',
+        // Filtro por status=1 (Aberto/Em andamento) para ser mais eficiente
+        const url = `${TOMTICKET_API_URL}/ticket/list?status=1`;
+        console.log(`Fetching active tickets from TomTicket... URL: ${url}`);
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${apiToken}`,
+            },
+            cache: 'no-store',
+        });
+        
+        if (!response.ok) {
+             const errorBody = await response.text();
+             console.error('TomTicket API Error:', {
+                status: response.status,
+                statusText: response.statusText,
+                body: errorBody
             });
-            
-            if (!response.ok) {
-                 const errorBody = await response.text();
-                 console.error('TomTicket API Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: errorBody
-                });
-                throw new Error(`Erro na API TomTicket: HTTP status ${response.status}`);
-            }
-
-            const data: TomTicketApiResponse = await response.json();
-            
-            if (data.data && data.data.length > 0) {
-                allTickets = allTickets.concat(data.data);
-                page++;
-                 // Add a small delay to avoid hitting rate limits
-                await new Promise(resolve => setTimeout(resolve, 250));
-            } else {
-                hasMorePages = false;
-            }
+            throw new Error(`Erro na API TomTicket: HTTP status ${response.status}`);
         }
-        console.log(`Total tickets fetched from all pages: ${allTickets.length}`);
-        return allTickets;
+
+        const data: TomTicketApiResponse = await response.json();
+        
+        if (data.data) {
+            console.log(`Total active tickets fetched: ${data.data.length}`);
+            return data.data;
+        }
+        return [];
 
     } catch (error) {
         console.error('Falha ao buscar tickets do TomTicket:', error);
@@ -174,13 +163,18 @@ export async function syncTomTicketData() {
     
     const updateLog: string[] = [];
 
+    // Reset all agents to 0 before applying new counts
+    agentsSnapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { activeClients: 0 });
+    });
+
+
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
       
       const tomticketName = agent.tomticketName;
-      console.log(`SERVER_SYNC: Checking Firestore agent '${agent.name}' with tomticketName: '${tomticketName}'`);
-
+      
       const tomTicketCount = tomticketName ? agentTicketCounts[tomticketName] || 0 : 0;
       
       if (agent.activeClients !== tomTicketCount) {
@@ -190,7 +184,8 @@ export async function syncTomTicketData() {
 
         batch.update(agentRef, { 
           activeClients: tomTicketCount,
-          lastInteractionTime: now
+          // Only update interaction time if they are active
+          ...(tomTicketCount > 0 && { lastInteractionTime: now })
         });
         updatesMade++;
       }
@@ -221,5 +216,3 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync", dataSample: [] };
   }
 }
-
-
