@@ -77,7 +77,6 @@ const AgentIdentifierSchema = z.object({
 export const AnalysisOutputSchema = z.object({
   mostProductiveAgent: AgentIdentifierSchema.describe('O atendente que atendeu o maior número de clientes.'),
   leastProductiveAgent: AgentIdentifierSchema.describe('O atendente que atendeu o menor número de clientes.'),
-  mostOverloadedAgent: AgentIdentifierSchema.describe('O atendente que parece estar mais sobrecarregado.'),
   agentPerformance: z
     .array(AgentPerformanceSchema)
     .describe('Lista de performance individual de cada atendente.'),

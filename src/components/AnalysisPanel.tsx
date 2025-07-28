@@ -66,9 +66,9 @@ function AnalysisResult({ result }: { result: AnalysisOutput }) {
         </CardHeader>
         <CardContent>
             <div className="flex flex-col gap-1 rounded-lg border p-3">
-                <p className="font-semibold text-blue-600">Possivelmente Sobrecarregado(a)</p>
-                <p className="text-muted-foreground">{result.mostOverloadedAgent.name}</p>
-                <p className="font-bold">{result.mostOverloadedAgent.clientsHandled} clientes</p>
+                <p className="font-semibold text-primary">{result.mostProductiveAgent.name}</p>
+                <p className="text-muted-foreground">foi o(a) atendente mais produtivo(a) hoje.</p>
+                <p className="font-bold">{result.mostProductiveAgent.clientsHandled} clientes atendidos</p>
             </div>
         </CardContent>
       </Card>
