@@ -4,6 +4,7 @@ import { db } from '@/lib/firebase';
 import { AgentDocument, PauseLogDocument, DailyReport } from '@/lib/types';
 import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { getActiveChats } from '@/lib/tomticket';
 
 export async function clearAndSeedAgents(agents: AgentDocument[]) {
   const batch = writeBatch(db);
@@ -68,4 +69,63 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
   
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => doc.data() as DailyReport);
+}
+
+
+export async function syncTomTicketData() {
+  console.log("Starting TomTicket data sync...");
+  try {
+    // 1. Fetch active chats from TomTicket
+    const tomTicketResponse = await getActiveChats();
+    if (!tomTicketResponse.success) {
+      console.error("TomTicket API returned an error:", tomTicketResponse);
+      throw new Error("TomTicket API did not return success");
+    }
+
+    const activeChats = tomTicketResponse.data;
+    console.log(`Found ${activeChats.length} active chats.`);
+
+    // 2. Count active chats per agent
+    const agentChatCounts: { [key: string]: number } = {};
+    for (const chat of activeChats) {
+      if (chat.nome_atendente) {
+        if (!agentChatCounts[chat.nome_atendente]) {
+          agentChatCounts[chat.nome_atendente] = 0;
+        }
+        agentChatCounts[chat.nome_atendente]++;
+      }
+    }
+    console.log("Agent chat counts:", agentChatCounts);
+
+    // 3. Update Firestore
+    const agentsCollection = collection(db, 'AtendimentoSAC');
+    const agentsSnapshot = await getDocs(agentsCollection);
+    const batch = writeBatch(db);
+    const now = new Date().toISOString();
+
+    agentsSnapshot.docs.forEach(doc => {
+      const agent = doc.data() as AgentDocument;
+      const agentRef = doc.ref;
+      const tomTicketCount = agentChatCounts[agent.name] || 0;
+      
+      // Update only if the count is different
+      if (agent.activeClients !== tomTicketCount) {
+        console.log(`Updating ${agent.name}: from ${agent.activeClients} to ${tomTicketCount}`);
+        batch.update(agentRef, { 
+          activeClients: tomTicketCount,
+          lastInteractionTime: now
+        });
+      }
+    });
+
+    await batch.commit();
+    console.log("Firestore batch commit successful.");
+    return { success: true, message: "Sync successful" };
+  } catch (error) {
+    console.error("Failed to sync TomTicket data:", error);
+    if (error instanceof Error) {
+        return { success: false, message: error.message };
+    }
+    return { success: false, message: "An unknown error occurred" };
+  }
 }

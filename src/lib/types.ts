@@ -102,25 +102,25 @@ export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
 
 // Tipos para a API do TomTicket
 export interface TomTicketChat {
-    id: number;
-    protocolo: string;
-    status: number;
-    tipo: string;
-    id_cliente: number;
-    nome_cliente: string;
-    email_cliente: string;
-    id_departamento: number;
-    departamento: string;
-    id_atendente: number | null;
-    nome_atendente: string | null;
-    ult_interacao_atendente: string | null;
-    ult_interacao_cliente: string;
-    data: string;
-    notas: string | null;
-    tags: string[];
+  id: number;
+  protocolo: string;
+  status: number;
+  tipo: string;
+  id_cliente: number;
+  nome_cliente: string;
+  email_cliente: string;
+  id_departamento: number;
+  departamento: string;
+  id_atendente: number | null;
+  nome_atendente: string | null;
+  ult_interacao_atendente: string | null;
+  ult_interacao_cliente: string;
+  data: string;
+  notas: string | null;
+  tags: string[];
 }
 
 export interface TomTicketApiResponse {
-    success: boolean;
-    data: TomTicketChat[];
+  success: boolean;
+  data: TomTicketChat[];
 }

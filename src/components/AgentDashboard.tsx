@@ -25,51 +25,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog, AgentDocument } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Coffee, Minus, Plus, UserCheck, UserX, Lock } from 'lucide-react';
+import { Coffee, UserCheck, UserX, Lock, AlertTriangle } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
 import ClientOnly from './ClientOnly';
-import { addPauseLog, updateAgent } from '@/app/actions';
+import { addPauseLog, updateAgent, syncTomTicketData } from '@/app/actions';
 import { useState, useEffect } from 'react';
 
 const AVAILABILITY_PASSWORD = "150121";
-
-// Function to play a simple beep sound
-function playNotificationSound() {
-    if (typeof window === 'undefined' || !window.AudioContext) return;
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (!audioContext) return;
-    
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    const now = audioContext.currentTime;
-
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(440, now);
-    oscillator.frequency.linearRampToValueAtTime(880, now + 0.1);
-
-    gainNode.gain.setValueAtTime(0.3, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.start(now);
-    oscillator.stop(now + 0.3);
-}
-
-const findNextBestAgent = (agents: Agent[]): string | null => {
-  const availableAgents = agents
-    .filter(agent => agent.isAvailable && !agent.isOnPause)
-    .sort((a, b) => {
-      if (a.activeClients < b.activeClients) return -1;
-      if (a.activeClients > b.activeClients) return 1;
-      const timeA = new Date(a.lastInteractionTime).getTime();
-      const timeB = new Date(b.lastInteractionTime).getTime();
-      return timeA - timeB;
-    });
-
-  return availableAgents.length > 0 ? availableAgents[0].id : null;
-};
 
 // Component to show a running timer for the pause
 const PauseTimer = ({ startTime }: { startTime: string }) => {
@@ -101,11 +63,65 @@ const PauseTimer = ({ startTime }: { startTime: string }) => {
 
 export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: Agent[]; setAgents: React.Dispatch<React.SetStateAction<Agent[]>>, onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
   const { toast } = useToast();
-  const [updatingClients, setUpdatingClients] = useState<Set<string>>(new Set());
   
   const [password, setPassword] = useState("");
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [agentToUpdate, setAgentToUpdate] = useState<Agent | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  useEffect(() => {
+    // Function to run the sync
+    const runSync = async () => {
+        console.log("Attempting to sync with TomTicket...");
+        const result = await syncTomTicketData();
+        if (!result.success) {
+            console.error("Sync failed:", result.message);
+            // Show error toast only if it's a new or different error
+            setSyncError((prevError) => {
+                if (prevError !== result.message) {
+                    toast({
+                        variant: "destructive",
+                        title: "Erro de Sincronização",
+                        description: `Não foi possível sincronizar com o TomTicket. A contagem de clientes pode estar desatualizada. (${result.message})`,
+                    });
+                }
+                return result.message || 'Erro desconhecido';
+            });
+        } else {
+            // Clear error on successful sync
+            if (syncError) {
+                setSyncError(null);
+                toast({
+                    title: "Sincronização Restaurada",
+                    description: "A conexão com o TomTicket foi restaurada com sucesso.",
+                });
+            }
+        }
+    };
+
+    // Run immediately on component mount
+    runSync();
+
+    // Then run every 30 seconds
+    const intervalId = setInterval(runSync, 30000);
+
+    // Cleanup on component unmount
+    return () => clearInterval(intervalId);
+  }, [toast, syncError]);
+
+
+  const findNextBestAgent = (agents: Agent[]): string | null => {
+    const availableAgents = agents
+      .filter(agent => agent.isAvailable && !agent.isOnPause && agent.activeClients === 0)
+      .sort((a, b) => {
+        const timeA = new Date(a.lastInteractionTime).getTime();
+        const timeB = new Date(b.lastInteractionTime).getTime();
+        return timeA - timeB;
+      });
+
+    return availableAgents.length > 0 ? availableAgents[0].id : null;
+  };
 
   const nextAgentId = findNextBestAgent(agents);
 
@@ -114,7 +130,6 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
       updateAgent(agentId, updates).catch(error => {
           console.error(`Failed to update agent ${agentId}`, error);
           toast({ variant: 'destructive', title: 'Erro de Sincronização', description: 'Não foi possível salvar a alteração. A interface pode estar dessincronizada.' });
-          // Note: In a real-world app, you might want to revert the optimistic update here.
       });
   };
 
@@ -134,65 +149,6 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
     );
   };
 
-  const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
-    // Prevent multiple clicks while processing
-    if (updatingClients.has(agent.id)) {
-      return;
-    }
-
-    const newCount = agent.activeClients + change;
-    if (newCount < 0 || newCount > 5) return;
-
-    // Immediately disable buttons for this agent
-    setUpdatingClients(prev => new Set(prev).add(agent.id));
-    
-    const now = new Date();
-    
-    const updatesForServer: Partial<AgentDocument> = {
-      activeClients: newCount,
-      lastInteractionTime: now.toISOString(),
-    };
-    
-    // Optimistically update the UI
-    optimisticUpdate(agent.id, {
-        activeClients: newCount,
-        lastInteractionTime: now.toISOString(),
-    });
-
-
-    if (change === 1) {
-       const lastInteraction = new Date(agent.lastInteractionTime);
-       const timeDiffMinutes = (now.getTime() - lastInteraction.getTime()) / (1000 * 60);
-
-      const newTotalClientsHandled = agent.totalClientsHandled + 1;
-      const totalMinutesSoFar = agent.avgTimePerClient * agent.totalClientsHandled;
-      const newAvgTimePerClient = (totalMinutesSoFar + timeDiffMinutes) / newTotalClientsHandled;
-      
-      updatesForServer.totalClientsHandled = newTotalClientsHandled;
-      updatesForServer.avgTimePerClient = newAvgTimePerClient;
-      
-      // Optimistically update these as well
-      optimisticUpdate(agent.id, {
-          totalClientsHandled: newTotalClientsHandled,
-          avgTimePerClient: newAvgTimePerClient,
-      });
-
-      playNotificationSound();
-    }
-
-    // Call server action in the background and re-enable buttons
-    handleUpdateOnServer(agent.id, updatesForServer);
-    
-    // Re-enable buttons after a very short delay to allow UI to update
-    // The final state will be synced by Firestore's onSnapshot anyway
-    setTimeout(() => {
-        setUpdatingClients(prev => {
-            const next = new Set(prev);
-            next.delete(agent.id);
-            return next;
-        });
-    }, 300);
-  };
   
   const handleAvailabilityIconClick = (agent: Agent) => {
     if (agent.activeClients > 0 || agent.isOnPause) {
@@ -238,15 +194,16 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
 
 
   const handleTogglePause = (agent: Agent) => {
-    if (!agent.isAvailable || agent.activeClients > 0) {
-      toast({
+    const canTogglePause = !(!agent.isOnPause && (!agent.isAvailable || agent.activeClients > 0));
+    if (!canTogglePause) {
+       toast({
         variant: 'destructive',
         title: 'Ação não permitida',
-        description: 'Não é possível pausar um atendente indisponível ou com clientes ativos.',
+        description: 'Atendentes indisponíveis ou com clientes ativos não podem iniciar uma pausa.',
       });
       return;
     }
-
+    
     const isOnPause = !agent.isOnPause;
     const now = new Date().toISOString();
     const updatesForServer: Partial<AgentDocument> = { isOnPause, lastInteractionTime: now };
@@ -261,15 +218,12 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: now,
         };
-        handleAddLog(pauseLog); // This is already a background operation
+        handleAddLog(pauseLog);
         updatesForServer.pauseStartTime = undefined;
         updatesForClient.pauseStartTime = undefined;
     }
     
-    // Optimistic update
     optimisticUpdate(agent.id, updatesForClient);
-
-    // Server update
     handleUpdateOnServer(agent.id, updatesForServer);
   };
 
@@ -303,8 +257,8 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
             {sortedAgents.map((agent) => {
               const status = getStatus(agent);
               const isNextAgent = agent.id === nextAgentId;
-              const isUpdating = updatingClients.has(agent.id);
-              const isDisabled = agent.activeClients > 0 || agent.isOnPause;
+              const isDisabledForLock = agent.activeClients > 0 || agent.isOnPause;
+              const isDisabledForPause = !agent.isOnPause && (!agent.isAvailable || agent.activeClients > 0);
 
               return (
                 <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 hover:bg-primary/30")}>
@@ -314,15 +268,9 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                     </div>
                   </TableCell>
                   <TableCell className={cn(isNextAgent && "font-bold")}>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-2">
-                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0 || isUpdating}>
-                              <Minus className="h-4 w-4" />
-                          </Button>
                           <span className={cn("w-4 text-lg", isNextAgent ? "font-bold" : "font-medium")}>{agent.activeClients}</span>
-                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40 font-bold')} onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients >= 5 || isUpdating}>
-                              <Plus className="h-4 w-4" />
-                          </Button>
                       </div>
                   </TableCell>
                   <TableCell>
@@ -335,7 +283,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                   <TableCell className="text-center">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable && !agent.isOnPause && agent.activeClients > 0}>
+                        <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={isDisabledForPause}>
                           <Coffee className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
@@ -357,7 +305,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                                     size="icon" 
                                     className='h-7 w-7'
                                     onClick={() => handleAvailabilityIconClick(agent)}
-                                    disabled={isDisabled}
+                                    disabled={isDisabledForLock}
                                 >
                                     <Lock className="h-4 w-4" />
                                 </Button>
@@ -373,7 +321,24 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
             })}
           </TableBody>
         </Table>
-        <div className="flex items-center justify-end p-2 border-t">
+        <div className="flex items-center justify-between p-2 border-t">
+            {syncError && (
+              <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className='flex items-center gap-2 text-destructive text-xs ml-2'>
+                            <AlertTriangle className="h-4 w-4" />
+                            <span>Erro de Sincronia</span>
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Falha na conexão com a API do TomTicket.</p>
+                        <p className='text-xs text-muted-foreground'>{syncError}</p>
+                    </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <div className='flex-grow'></div>
             <ClientOnly>
                 <RealTimeClock />
             </ClientOnly>
@@ -411,5 +376,3 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
     </>
   );
 }
-
-    
