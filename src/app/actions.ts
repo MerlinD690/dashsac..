@@ -73,7 +73,6 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 
 async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
-    // Use the non-prefixed variable for server-side code.
     const apiToken = process.env.TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
@@ -112,10 +111,8 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
             
             if (data.success && data.data && data.data.length > 0) {
                 allChats = allChats.concat(data.data);
-                // The API documentation indicates 'next_page' tells us if there's more data.
                 if (data.next_page) {
                     page = data.next_page;
-                    // Add a small delay to avoid rate limiting
                     await new Promise(resolve => setTimeout(resolve, 250));
                 } else {
                     keepFetching = false;
@@ -145,7 +142,6 @@ export async function syncTomTicketData() {
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
-      // Safe navigation: only count if operator and name exist.
       const agentName = chat.operator?.name; 
       if (agentName) {
         agentChatCounts[agentName] = (agentChatCounts[agentName] || 0) + 1;
@@ -174,13 +170,11 @@ export async function syncTomTicketData() {
       
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
-      // Update even if the count is the same (0), to ensure reset is committed.
       const logMessage = `Updating ${agent.name} (TomTicket: ${tomticketName}): Firestore count ${agent.activeClients} -> API count ${tomTicketCount}`;
       updateLog.push(logMessage);
 
       batch.update(agentRef, { 
         activeClients: tomTicketCount,
-        // Only update interaction time if they are active
         ...(tomTicketCount > 0 && { lastInteractionTime: now })
       });
       updatesMade++;
@@ -190,8 +184,6 @@ export async function syncTomTicketData() {
         await batch.commit();
         console.log(`SERVER_SYNC: Firestore batch commit successful. Updated ${updatesMade} agents.`);
     } else {
-        // This case might happen if there are no agents in Firestore.
-        // We still need to commit the reset batch.
         await batch.commit();
         console.log("SERVER_SYNC: No agents to update, but reset batch committed.");
     }
