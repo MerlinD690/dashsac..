@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog } from '@/lib/types';
 import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
@@ -103,10 +104,7 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: now,
         });
-        // When pause ends, we no longer need the pauseStartTime
-        const { pauseStartTime, ...restOfUpdates } = updates;
-        onUpdateAgent(agent.id, { ...restOfUpdates, pauseStartTime: undefined });
-        return;
+        updates.pauseStartTime = undefined;
     }
 
     onUpdateAgent(agent.id, updates);
@@ -131,7 +129,7 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
   });
 
   return (
-    <>
+    <TooltipProvider>
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
@@ -173,9 +171,16 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0}>
-                      <Coffee className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0}>
+                          <Coffee className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{agent.isOnPause ? 'Finalizar Pausa' : 'Iniciar Pausa'}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="text-right">
                     <Switch
@@ -190,6 +195,6 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
           </TableBody>
         </Table>
       </div>
-    </>
+    </TooltipProvider>
   );
 }
