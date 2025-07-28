@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { AgentDocument, PauseLogDocument, DailyReport } from '@/lib/types';
+import { AgentDocument, PauseLogDocument, DailyReport, TomTicketChat } from '@/lib/types';
 import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
 import { format, subMinutes } from 'date-fns';
 
@@ -12,12 +12,13 @@ interface TomTicketOperator {
     name: string;
 }
 
-interface TomTicketChat {
-  id: string;
-  protocolo: number;
-  situation: number; // 1 - Aguardando, 2 - Em conversa, 3 - Finalizado
-  operator: TomTicketOperator | null;
-}
+// A interface TomTicketChat agora está em types.ts
+// interface TomTicketChat {
+//   id: string;
+//   protocolo: number;
+//   situation: number; // 1 - Aguardando, 2 - Em conversa, 3 - Finalizado
+//   operator: TomTicketOperator | null;
+// }
 
 interface TomTicketApiResponse {
   success: boolean;
@@ -100,17 +101,17 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
     }
 
     try {
-        // A API espera o formato 'YYYY-MM-DD HH:mm:ss'.
         const fiveMinutesAgo = subMinutes(new Date(), 5);
+        // Formato esperado: YYYY-MM-DD HH:mm:ss
         const formattedDate = format(fiveMinutesAgo, 'yyyy-MM-dd HH:mm:ss');
+        // Codifica manualmente o espaço para %20, que é o padrão mais seguro para URLs.
+        const encodedDate = formattedDate.replace(' ', '%20');
         
-        const url = new URL(`${TOMTICKET_API_URL}/chat/list`);
-        url.searchParams.append('creation_date_ge', formattedDate);
+        const url = `${TOMTICKET_API_URL}/chat/list?creation_date_ge=${encodedDate}`;
 
-        const response = await fetch(url.toString(), {
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
-                // Formato exato: "Bearer " com espaço seguido do token.
                 'Authorization': `Bearer ${apiToken}`,
             },
             cache: 'no-store', // Garante que não estamos vendo uma resposta antiga em cache
