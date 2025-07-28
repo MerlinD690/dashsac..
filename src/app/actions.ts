@@ -93,31 +93,44 @@ async function getActiveTickets(): Promise<TomTicketChat[]> {
         throw new Error('API token (TOMTICKET_API_TOKEN) is not available in server environment.');
     }
 
+    let allTickets: TomTicketChat[] = [];
+    let page = 1;
+    let hasMorePages = true;
+
     try {
-        // Changed endpoint from /chat/list to /ticket/list to get more relevant data
-        const url = `${TOMTICKET_API_URL}/ticket/list`;
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${apiToken}`,
-            },
-            cache: 'no-store',
-        });
-        
-        const data: TomTicketApiResponse = await response.json();
-
-        if (!response.ok) {
-            console.error('TomTicket API Error:', {
-                status: response.status,
-                statusText: response.statusText,
-                body: data
+        while (hasMorePages) {
+            const url = `${TOMTICKET_API_URL}/ticket/list?page=${page}`;
+            console.log(`Fetching page ${page} from TomTicket...`);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                },
+                cache: 'no-store',
             });
-            const errorMessage = data.message || `HTTP error! status: ${response.status}`;
-            throw new Error(`Erro na API TomTicket: ${errorMessage}`);
-        }
+            
+            const data: TomTicketApiResponse = await response.json();
 
-        return data.data || [];
+            if (!response.ok) {
+                console.error('TomTicket API Error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: data
+                });
+                const errorMessage = data.message || `HTTP error! status: ${response.status}`;
+                throw new Error(`Erro na API TomTicket: ${errorMessage}`);
+            }
+            
+            if (data.data && data.data.length > 0) {
+                allTickets = allTickets.concat(data.data);
+                page++;
+            } else {
+                hasMorePages = false;
+            }
+        }
+        console.log(`Total tickets fetched from all pages: ${allTickets.length}`);
+        return allTickets;
 
     } catch (error) {
         console.error('Falha ao buscar tickets do TomTicket:', error);
