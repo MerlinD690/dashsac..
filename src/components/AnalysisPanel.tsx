@@ -33,7 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Hardcoded password for the analysis feature
-const ANALYSIS_PASSWORD = "omoflow";
+const ANALYSIS_PASSWORD = "omo123456789";
 
 function AnalysisResult({ result }: { result: AnalysisOutput }) {
   return (
@@ -192,7 +192,7 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
             <AlertDialogHeader>
             <AlertDialogTitle>Acesso Restrito</AlertDialogTitle>
             <AlertDialogDescription>
-                Para acessar a análise de performance, por favor, insira a senha de administrador.
+                Para acessar a análise, por favor, insira a senha de administrador.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="flex items-center space-x-2">
