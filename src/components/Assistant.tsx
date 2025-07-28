@@ -5,14 +5,14 @@ import { useState } from 'react';
 import { CornerDownLeft, Bot, Sparkles, LoaderCircle } from 'lucide-react';
 import { runFlow } from '@genkit-ai/next/client';
 import type { MessageData } from 'genkit/experimental/ai';
-import { assistant, AssistantInput } from '@/ai/flows/assistant';
+import { assistant } from '@/ai/flows/assistant';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Agent, PauseLog } from '@/lib/types';
+import { Agent, PauseLog, type AssistantInput } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 type AssistantProps = {
@@ -48,7 +48,7 @@ export function Assistant({ agents, pauseLogs }: AssistantProps) {
             agents: agents 
         };
         
-        const response = await runFlow(assistant, assistantInput);
+        const response = await assistant(assistantInput);
 
         if(response) {
             setMessages(prev => [...prev, { role: 'model', content: [{ text: response as string }] }]);

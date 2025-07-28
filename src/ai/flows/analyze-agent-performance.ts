@@ -28,11 +28,6 @@ export type AnalyzeAgentPerformanceOutput = z.infer<
   typeof AnalyzeAgentPerformanceOutputSchema
 >;
 
-export async function analyzeAgentPerformance(
-  input: AnalyzeAgentPerformanceInput
-): Promise<AnalyzeAgentPerformanceOutput> {
-  return analyzeAgentPerformanceFlow(input);
-}
 
 
 const analyzeAgentPerformancePrompt = ai.definePrompt({
@@ -65,3 +60,10 @@ const analyzeAgentPerformanceFlow = ai.defineFlow(
     return output ?? 'Desculpe, não foi possível analisar a performance neste momento.';
   }
 );
+
+
+export async function analyzeAgentPerformance(
+  input: AnalyzeAgentPerformanceInput
+): Promise<AnalyzeAgentPerformanceOutput> {
+  return analyzeAgentPerformanceFlow(input);
+}

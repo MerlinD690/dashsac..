@@ -1,3 +1,4 @@
+
 // Summarize the day's laundry operations, providing key metrics and identifying unusual events.
 
 'use server';
@@ -37,9 +38,7 @@ const SummarizeDailyOperationsOutputSchema = z.object({
 
 export type SummarizeDailyOperationsOutput = z.infer<typeof SummarizeDailyOperationsOutputSchema>;
 
-export async function summarizeDailyOperations(input: SummarizeDailyOperationsInput): Promise<SummarizeDailyOperationsOutput> {
-  return summarizeDailyOperationsFlow(input);
-}
+
 
 const summarizeDailyOperationsPrompt = ai.definePrompt({
   name: 'summarizeDailyOperationsPrompt',
@@ -77,3 +76,8 @@ const summarizeDailyOperationsFlow = ai.defineFlow(
     return output!;
   }
 );
+
+
+export async function summarizeDailyOperations(input: SummarizeDailyOperationsInput): Promise<SummarizeDailyOperationsOutput> {
+  return summarizeDailyOperationsFlow(input);
+}

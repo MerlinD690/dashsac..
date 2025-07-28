@@ -1,16 +1,9 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { MessageData } from 'genkit/experimental/ai';
-import { AgentSchema } from '@/lib/types';
-
-export const AssistantInputSchema = z.object({
-    history: z.array(z.custom<MessageData>()),
-    agents: z.array(AgentSchema),
-});
-export type AssistantInput = z.infer<typeof AssistantInputSchema>;
+import { AgentSchema, AssistantInputSchema, type AssistantInput } from '@/lib/types';
 
 
 const assistantPrompt = ai.definePrompt(
