@@ -90,11 +90,12 @@ export async function syncTomTicketData() {
     // 2. Count active chats per agent using their TomTicket name
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
-      if (chat.nome_atendente) {
-        if (!agentChatCounts[chat.nome_atendente]) {
-          agentChatCounts[chat.nome_atendente] = 0;
+      const agentName = chat.operator?.name;
+      if (agentName) {
+        if (!agentChatCounts[agentName]) {
+          agentChatCounts[agentName] = 0;
         }
-        agentChatCounts[chat.nome_atendente]++;
+        agentChatCounts[agentName]++;
       }
     }
     console.log("TomTicket agent chat counts:", agentChatCounts);
