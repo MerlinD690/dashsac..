@@ -133,6 +133,8 @@ export async function syncTomTicketData() {
   try {
     const allChats = await getActiveChats();
     
+    // Logic changed: An active chat is one that has an operator assigned.
+    // We are no longer filtering by situation, as the values were uncertain.
     const activeChats = allChats.filter(chat => chat.operator && chat.operator.name);
     
     console.log(`SERVER_SYNC: Found ${allChats.length} total chats from API. Found ${activeChats.length} assigned chats.`);
@@ -147,7 +149,7 @@ export async function syncTomTicketData() {
         agentChatCounts[agentName]++;
       }
     }
-    // Novo Log Detalhado
+    // New Detailed Log
     console.log("SERVER_SYNC: Counted active TomTicket agent chats:", agentChatCounts);
 
     const agentsCollection = collection(db, 'AtendimentoSAC');
@@ -163,7 +165,7 @@ export async function syncTomTicketData() {
       const agentRef = doc.ref;
       
       const tomticketName = agent.tomticketName;
-      // Novo Log de Verificação
+      // New Verification Log
       console.log(`SERVER_SYNC: Checking Firestore agent '${agent.name}' with tomticketName: '${tomticketName}'`);
 
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
