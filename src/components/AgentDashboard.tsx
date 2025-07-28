@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 
 // Function to play a simple beep sound
@@ -39,23 +40,43 @@ function playNotificationSound() {
     oscillator.stop(now + 0.3);
 }
 
+const findNextBestAgent = (agents: Agent[]): string | null => {
+  const availableAgents = agents
+    .filter(agent => agent.isAvailable && !agent.isOnPause)
+    .sort((a, b) => {
+      // Primary sort: by active clients (ascending)
+      if (a.activeClients < b.activeClients) return -1;
+      if (a.activeClients > b.activeClients) return 1;
+
+      // Secondary sort: by last interaction time (ascending, older first)
+      const timeA = new Date(a.lastInteractionTime).getTime();
+      const timeB = new Date(b.lastInteractionTime).getTime();
+      return timeA - timeB;
+    });
+
+  return availableAgents.length > 0 ? availableAgents[0].id : null;
+};
+
 
 export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agents: Agent[]; onUpdateAgent: (agentId: string, updates: Partial<Agent>) => void; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
   const { toast } = useToast();
+  
+  const nextAgentId = findNextBestAgent(agents);
 
   const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
     const newCount = agent.activeClients + change;
     if (newCount < 0 || newCount > 5) return;
 
     const now = new Date();
-    const lastInteraction = new Date(agent.lastInteractionTime);
-    const timeDiffMinutes = (now.getTime() - lastInteraction.getTime()) / (1000 * 60);
-
+    
     const updates: Partial<Agent> = {
       activeClients: newCount,
       lastInteractionTime: now.toISOString(),
     };
     if (change === 1) {
+       const lastInteraction = new Date(agent.lastInteractionTime);
+       const timeDiffMinutes = (now.getTime() - lastInteraction.getTime()) / (1000 * 60);
+
       const newTotalClientsHandled = agent.totalClientsHandled + 1;
       // Recalculate average time per client. This is a simplified logic.
       // It assumes the time since last interaction was for a single client if activeClients was > 0.
@@ -118,13 +139,6 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
   };
 
   const sortedAgents = [...agents].sort((a, b) => {
-    if (a.isAvailable !== b.isAvailable) {
-      return a.isAvailable ? -1 : 1;
-    }
-    // Keep paused agents in their sorted name position
-    if (a.isOnPause && !b.isOnPause) return a.name.localeCompare(b.name);
-    if (!a.isOnPause && b.isOnPause) return a.name.localeCompare(b.name);
-    
     return a.name.localeCompare(b.name);
   });
 
@@ -145,8 +159,9 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
           <TableBody>
             {sortedAgents.map((agent) => {
               const status = getStatus(agent);
+              const isNextAgent = agent.id === nextAgentId;
               return (
-                <TableRow key={agent.id}>
+                <TableRow key={agent.id} className={cn(isNextAgent && "ring-2 ring-accent")}>
                   <TableCell>
                     <div className="font-medium">
                       {agent.name}
