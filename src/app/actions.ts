@@ -1,11 +1,12 @@
 
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { Agent, PauseLog, DailyReport } from '@/lib/types';
 import { format } from 'date-fns';
 
 export async function clearAndSeedAgents(agents: Agent[]) {
+  const supabase = getSupabase();
   // Clear existing agents
   const { error: deleteError } = await supabase
     .from('agents')
@@ -34,6 +35,7 @@ export async function clearAndSeedAgents(agents: Agent[]) {
 
 
 export async function updateAgent(agentId: string, data: Partial<Agent>) {
+  const supabase = getSupabase();
   const { error } = await supabase
     .from('agents')
     .update(data)
@@ -46,6 +48,7 @@ export async function updateAgent(agentId: string, data: Partial<Agent>) {
 }
 
 export async function addPauseLog(log: Omit<PauseLog, 'id'>) {
+  const supabase = getSupabase();
   const { error } = await supabase
     .from('pause_logs')
     .insert([log]);
@@ -57,6 +60,7 @@ export async function addPauseLog(log: Omit<PauseLog, 'id'>) {
 }
 
 export async function getPauseLogsInRange(startDate: Date, endDate: Date): Promise<PauseLog[]> {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('pause_logs')
         .select('*')
@@ -72,6 +76,7 @@ export async function getPauseLogsInRange(startDate: Date, endDate: Date): Promi
 }
 
 export async function addDailyReport(report: Omit<DailyReport, 'date'>) {
+    const supabase = getSupabase();
     const today = format(new Date(), 'yyyy-MM-dd');
     const reportWithDate: DailyReport = {
         ...report,
@@ -90,6 +95,7 @@ export async function addDailyReport(report: Omit<DailyReport, 'date'>) {
 }
 
 export async function getDailyReports(days = 30): Promise<DailyReport[]> {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('daily_reports')
         .select('*')

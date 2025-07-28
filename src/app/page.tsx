@@ -8,7 +8,7 @@ import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import { Progress } from '@/components/ui/progress';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
 const initialAgentsData: Omit<Agent, 'id' | 'lastInteractionTime' | 'activeClients' | 'isAvailable' | 'totalClientsHandled' | 'avgTimePerClient' | 'isOnPause'>[] = [
@@ -44,66 +44,90 @@ export default function Home() {
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  async function fetchInitialData() {
-    const { data, error } = await supabase.from('agents').select('*');
-    if (error) {
-      console.error("Error fetching agents:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao carregar dados',
-        description: 'Não foi possível buscar os dados dos atendentes. Verifique a conexão com o Supabase.'
-      })
-      // Seed data if table is empty or doesn't exist
-       const initializedAgents = initialAgentsData.map((agent, index) => ({
-        id: `agent-${index + 1}`,
-        name: agent.name,
-        lastInteractionTime: new Date().toISOString(),
-        activeClients: 0,
-        isAvailable: true,
-        totalClientsHandled: 0,
-        avgTimePerClient: 0,
-        isOnPause: false,
-      }));
-      setAgents(initializedAgents);
-    } else {
-      setAgents(data || []);
-    }
-    setIsLoading(false);
-  }
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchInitialData();
-    
-    const channel = supabase.channel('realtime-agents');
-
-    channel
-      .on<Agent>('postgres_changes', { event: '*', schema: 'public', table: 'agents' }, payload => {
-        if (payload.eventType === 'UPDATE') {
-          setAgents(prevAgents => 
-            prevAgents.map(agent => 
-              agent.id === payload.new.id ? payload.new : agent
-            )
-          );
-        }
-        // You can also handle INSERT and DELETE if needed
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Connected to real-time agent updates!');
-        }
-      });
+    try {
+      const supabase = getSupabase();
       
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      const fetchInitialData = async () => {
+        const { data, error } = await supabase.from('agents').select('*');
+        if (error) {
+          console.error("Error fetching agents:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Erro ao carregar dados',
+            description: 'Não foi possível buscar os dados dos atendentes. Verifique a conexão com o Supabase.'
+          })
+          // Seed data if table is empty or doesn't exist
+           const initializedAgents = initialAgentsData.map((agent, index) => ({
+            id: `agent-${index + 1}`,
+            name: agent.name,
+            lastInteractionTime: new Date().toISOString(),
+            activeClients: 0,
+            isAvailable: true,
+            totalClientsHandled: 0,
+            avgTimePerClient: 0,
+            isOnPause: false,
+          }));
+          setAgents(initializedAgents);
+        } else {
+          setAgents(data || []);
+        }
+        setIsLoading(false);
+      }
+
+      fetchInitialData();
+      
+      const channel = supabase.channel('realtime-agents');
+
+      channel
+        .on<Agent>('postgres_changes', { event: '*', schema: 'public', table: 'agents' }, payload => {
+          if (payload.eventType === 'UPDATE') {
+            setAgents(prevAgents => 
+              prevAgents.map(agent => 
+                agent.id === payload.new.id ? payload.new : agent
+              )
+            );
+          }
+          // You can also handle INSERT and DELETE if needed
+        })
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Connected to real-time agent updates!');
+          }
+          if (err) {
+             console.error('Realtime subscription error:', err);
+             setError('Falha na conexão em tempo real. Verifique as configurações do Supabase.');
+          }
+        });
+        
+      // Cleanup subscription on unmount
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (e: any) {
+        console.error(e.message);
+        setError(e.message);
+        setIsLoading(false);
+    }
   }, []);
   
   const handleAddPauseLog = (log: Omit<PauseLog, 'id'>) => {
       setPauseLogs(prevLogs => [...prevLogs, {...log, id: `log-${Date.now()}`}]);
   };
 
+  if (error) {
+    return (
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+        <div className="max-w-md text-center">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Erro de Configuração</h1>
+            <p className="text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground mt-2">Por favor, verifique se as variáveis de ambiente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` estão corretas no seu arquivo `.env`.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">

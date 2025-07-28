@@ -1,9 +1,6 @@
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Agent, PauseLog, DailyReport } from './types';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Type definition for Supabase schema
 export type Json =
@@ -42,4 +39,20 @@ export type Database = {
   }
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+let supabaseClient: SupabaseClient<Database> | null = null;
+
+export const getSupabase = () => {
+    if (supabaseClient) {
+        return supabaseClient;
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'YOUR_SUPABASE_URL') {
+        throw new Error('Supabase URL and anonymous key are required. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env file.');
+    }
+    
+    supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey);
+    return supabaseClient;
+}
