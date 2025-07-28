@@ -213,17 +213,6 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
   }
 
   const handleAnalysis = async () => {
-    // Check for Gemini API Key - This check is illustrative for the client-side.
-    // The actual key usage is on the server.
-    if (!process.env.GEMINI_API_KEY) {
-        toast({
-            variant: "destructive",
-            title: "Chave de API da IA não configurada",
-            description: "A chave GEMINI_API_KEY não foi configurada no ambiente do servidor.",
-        });
-        return;
-    }
-
     setIsLoading(true);
     setAnalysisResult(null);
     try {
