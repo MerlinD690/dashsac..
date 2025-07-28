@@ -133,10 +133,11 @@ export async function syncTomTicketData() {
   try {
     const allChats = await getActiveChats();
     
-    // Filtra apenas por chats com situation 1 (Aguardando) ou 2 (Em conversa)
-    const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
+    // LOGIC CHANGE: We no longer filter by situation.
+    // We now count any chat that has an assigned operator as "active" for our purposes.
+    const activeChats = allChats.filter(chat => chat.operator && chat.operator.name);
     
-    console.log(`SERVER_SYNC: Found ${allChats.length} total chats from API. Found ${activeChats.length} active chats (situation 1 or 2).`);
+    console.log(`SERVER_SYNC: Found ${allChats.length} total chats from API. Found ${activeChats.length} assigned chats.`);
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
@@ -209,3 +210,4 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync", dataSample: [] };
   }
 }
+
