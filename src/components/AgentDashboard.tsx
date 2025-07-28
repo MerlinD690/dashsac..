@@ -19,9 +19,11 @@ import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
 import ClientOnly from './ClientOnly';
 import { addPauseLog, updateAgent } from '@/app/actions';
+import { useState } from 'react';
 
 // Function to play a simple beep sound
 function playNotificationSound() {
+    if (typeof window === 'undefined' || !window.AudioContext) return;
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (!audioContext) return;
     
@@ -47,11 +49,8 @@ const findNextBestAgent = (agents: Agent[]): string | null => {
   const availableAgents = agents
     .filter(agent => agent.isAvailable && !agent.isOnPause)
     .sort((a, b) => {
-      // Primary sort: by active clients (ascending)
       if (a.activeClients < b.activeClients) return -1;
       if (a.activeClients > b.activeClients) return 1;
-
-      // Secondary sort: by last interaction time (ascending, older first)
       const timeA = new Date(a.lastInteractionTime).getTime();
       const timeB = new Date(b.lastInteractionTime).getTime();
       return timeA - timeB;
@@ -60,11 +59,39 @@ const findNextBestAgent = (agents: Agent[]): string | null => {
   return availableAgents.length > 0 ? availableAgents[0].id : null;
 };
 
+// Check if we are in demo mode (no Supabase keys)
+const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL === 'YOUR_SUPABASE_URL';
 
-export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
+export function AgentDashboard({ agents: initialAgents, onAddPauseLog }: { agents: Agent[]; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
+  const [localAgents, setLocalAgents] = useState(initialAgents);
   const { toast } = useToast();
   
+  const agents = isDemoMode ? localAgents : initialAgents;
+  const setAgents = isDemoMode ? setLocalAgents : () => {};
+
   const nextAgentId = findNextBestAgent(agents);
+
+  const handleUpdate = (agentId: string, updates: Partial<Agent>) => {
+      if (isDemoMode) {
+          setAgents(prev => prev.map(a => a.id === agentId ? {...a, ...updates} : a));
+          return;
+      }
+
+      updateAgent(agentId, updates).catch(error => {
+          console.error(`Failed to update agent ${agentId}`, error);
+          toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
+      });
+  };
+
+  const handleAddLog = (log: Omit<PauseLog, 'id'>) => {
+    onAddPauseLog(log);
+    if (!isDemoMode) {
+      addPauseLog(log).catch(error => {
+          console.error("Failed to add pause log", error);
+          toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível registrar a pausa.' });
+      });
+    }
+  }
 
   const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
     const newCount = agent.activeClients + change;
@@ -88,10 +115,7 @@ export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onA
       updates.avgTimePerClient = newAvgTimePerClient;
       playNotificationSound();
     }
-    updateAgent(agent.id, updates).catch(error => {
-      console.error("Failed to update agent clients", error);
-      toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
-    });
+    handleUpdate(agent.id, updates);
   };
 
   const handleToggleAvailability = (agent: Agent, available: boolean) => {
@@ -103,10 +127,7 @@ export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onA
       });
       return;
     }
-    updateAgent(agent.id, { isAvailable: available }).catch(error => {
-      console.error("Failed to update agent availability", error);
-      toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
-    });
+    handleUpdate(agent.id, { isAvailable: available });
   };
 
   const handleTogglePause = (agent: Agent) => {
@@ -131,14 +152,11 @@ export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onA
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: now,
         };
-        addPauseLog(pauseLog).then(() => onAddPauseLog(pauseLog));
+        handleAddLog(pauseLog);
         updates.pauseStartTime = undefined;
     }
 
-    updateAgent(agent.id, updates).catch(error => {
-      console.error("Failed to update agent pause state", error);
-      toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
-    });
+    handleUpdate(agent.id, updates);
   };
 
 
