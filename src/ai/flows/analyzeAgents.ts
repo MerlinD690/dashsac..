@@ -9,7 +9,7 @@ import { AnalysisInput, AnalysisInputSchema, AnalysisOutput, AnalysisOutputSchem
 
 const analysisPrompt = ai.definePrompt({
   name: 'analysisPrompt',
-  model: 'googleai/gemini-pro',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: AnalysisInputSchema },
   output: { schema: AnalysisOutputSchema },
   prompt: `Você é um analista de dados especialista em performance de contact centers.
