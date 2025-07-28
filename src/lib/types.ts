@@ -109,14 +109,17 @@ interface TomTicketOperator {
     name: string;
 }
 
-export interface TomTicketChat {
+// Renomeado de TomTicketChat para TomTicketTicket
+export interface TomTicketTicket {
   id: string;
   protocolo: number;
-  situation: number; // 1 - Aguardando, 2 - Em conversa, 3 - Finalizado
+  status: number; 
   operator: TomTicketOperator | null;
 }
 
+// Renomeado de TomTicketApiResponse
 export interface TomTicketApiResponse {
   success: boolean;
-  data: TomTicketChat[];
+  data: TomTicketTicket[];
+  message?: string;
 }

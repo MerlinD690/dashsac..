@@ -1,22 +1,9 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { AgentDocument, PauseLogDocument, DailyReport, TomTicketChat } from '@/lib/types';
+import { AgentDocument, PauseLogDocument, DailyReport, TomTicketTicket, TomTicketApiResponse } from '@/lib/types';
 import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
 import { format, subMinutes } from 'date-fns';
-
-// Tipos locais para a resposta da API TomTicket
-interface TomTicketOperator {
-    id: string;
-    name: string;
-}
-
-interface TomTicketApiResponse {
-  success: boolean;
-  data: TomTicketChat[];
-  message?: string; 
-}
-
 
 export async function clearAndSeedAgents(agents: AgentDocument[]) {
   const batch = writeBatch(db);
@@ -83,7 +70,7 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 }
 
 
-async function getActiveTickets(): Promise<TomTicketChat[]> {
+async function getActiveTickets(): Promise<TomTicketTicket[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
     const apiToken = process.env.TOMTICKET_API_TOKEN;
 
