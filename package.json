@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm-run-all --parallel next:dev genkit:watch",
-    "next:dev": "next dev --turbopack",
-    "genkit:watch": "genkit watch",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
