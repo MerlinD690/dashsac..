@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
 import ClientOnly from './ClientOnly';
+import { addPauseLog, updateAgent } from '@/app/actions';
 
 // Function to play a simple beep sound
 function playNotificationSound() {
@@ -60,7 +61,7 @@ const findNextBestAgent = (agents: Agent[]): string | null => {
 };
 
 
-export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agents: Agent[]; onUpdateAgent: (agentId: string, updates: Partial<Agent>) => void; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
+export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
   const { toast } = useToast();
   
   const nextAgentId = findNextBestAgent(agents);
@@ -80,9 +81,6 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
        const timeDiffMinutes = (now.getTime() - lastInteraction.getTime()) / (1000 * 60);
 
       const newTotalClientsHandled = agent.totalClientsHandled + 1;
-      // Recalculate average time per client. This is a simplified logic.
-      // It assumes the time since last interaction was for a single client if activeClients was > 0.
-      // A more robust implementation might track each client session.
       const totalMinutesSoFar = agent.avgTimePerClient * agent.totalClientsHandled;
       const newAvgTimePerClient = (totalMinutesSoFar + timeDiffMinutes) / newTotalClientsHandled;
       
@@ -90,7 +88,10 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
       updates.avgTimePerClient = newAvgTimePerClient;
       playNotificationSound();
     }
-    onUpdateAgent(agent.id, updates);
+    updateAgent(agent.id, updates).catch(error => {
+      console.error("Failed to update agent clients", error);
+      toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
+    });
   };
 
   const handleToggleAvailability = (agent: Agent, available: boolean) => {
@@ -102,7 +103,10 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
       });
       return;
     }
-    onUpdateAgent(agent.id, { isAvailable: available });
+    updateAgent(agent.id, { isAvailable: available }).catch(error => {
+      console.error("Failed to update agent availability", error);
+      toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
+    });
   };
 
   const handleTogglePause = (agent: Agent) => {
@@ -122,15 +126,19 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
     if (isOnPause) {
         updates.pauseStartTime = now;
     } else if(agent.pauseStartTime) {
-        onAddPauseLog({
+        const pauseLog = {
             agentName: agent.name,
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: now,
-        });
+        };
+        addPauseLog(pauseLog).then(() => onAddPauseLog(pauseLog));
         updates.pauseStartTime = undefined;
     }
 
-    onUpdateAgent(agent.id, updates);
+    updateAgent(agent.id, updates).catch(error => {
+      console.error("Failed to update agent pause state", error);
+      toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente.' });
+    });
   };
 
 

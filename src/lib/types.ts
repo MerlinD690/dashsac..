@@ -1,10 +1,9 @@
-import type { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
 
 export interface Agent {
   id: string;
   name: string;
-  lastInteractionTime: string; // ISO string for client-side consistency
+  lastInteractionTime: string; // ISO string
   activeClients: number;
   isAvailable: boolean;
   totalClientsHandled: number;
@@ -17,14 +16,14 @@ export interface Agent {
 export const AgentSchema = z.object({
   id: z.string(),
   name: z.string(),
-  lastInteractionTime: z.string(),
-  activeClients: z.number(),
+  lastInteractionTime: z.string().datetime(),
+  activeClients: z.number().int(),
   isAvailable: z.boolean(),
-  totalClientsHandled: z.number(),
+  totalClientsHandled: z.number().int(),
   avgTimePerClient: z.number(),
   clientFeedback: z.string().optional(),
   isOnPause: z.boolean(),
-  pauseStartTime: z.string().optional(),
+  pauseStartTime: z.string().datetime().optional().nullable(),
 });
 
 // This type is used when passing data to the AI, it includes the pre-calculated pause time.
@@ -38,29 +37,18 @@ export const AgentWithPauseDataSchema = AgentSchema.extend({
 
 
 export interface PauseLog {
-  id?: string;
+  id?: number; // Supabase uses number for primary key by default
   agentName: string;
   pauseStartTime: string; // ISO string
   pauseEndTime: string; // ISO string
 }
 
 export const PauseLogSchema = z.object({
-    id: z.string().optional(),
+    id: z.number().int().optional(),
     agentName: z.string(),
-    pauseStartTime: z.string(),
-    pauseEndTime: z.string(),
+    pauseStartTime: z.string().datetime(),
+    pauseEndTime: z.string().datetime(),
 });
-
-
-export interface AgentDocument extends Omit<Agent, 'lastInteractionTime' | 'pauseStartTime'> {
-    lastInteractionTime: Timestamp;
-    pauseStartTime?: Timestamp;
-}
-
-export interface PauseLogDocument extends Omit<PauseLog, 'pauseStartTime' | 'pauseEndTime'> {
-    pauseStartTime: Timestamp;
-    pauseEndTime: Timestamp;
-}
 
 // AI Related types
 export const AgentPerformanceSchema = z.object({
@@ -105,3 +93,7 @@ export const AnalysisInputSchema = z.object({
   historicalData: z.array(DailyReportSchema).optional().describe('Dados de performance dos dias anteriores para análise de tendências.'),
 });
 export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
+
+// Supabase doesn't need these document types anymore
+export interface AgentDocument {}
+export interface PauseLogDocument {}

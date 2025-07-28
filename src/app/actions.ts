@@ -1,100 +1,74 @@
 
 'use server';
 
-import { db } from '@/lib/firebase';
-import { Agent, AgentDocument, PauseLog, PauseLogDocument, DailyReport } from '@/lib/types';
-import { collection, doc, writeBatch, getDocs, query, where, Timestamp, updateDoc, addDoc, serverTimestamp, deleteField, getDoc, collectionGroup, deleteDoc, documentId, orderBy, limit } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
+import { Agent, PauseLog, DailyReport } from '@/lib/types';
 import { format } from 'date-fns';
-
-const agentsCollection = collection(db, 'agents');
-const pauseLogsCollection = collection(db, 'pauseLogs');
-const dailyReportsCollection = collection(db, 'dailyReports');
-
 
 export async function clearAndSeedAgents(agents: Agent[]) {
   // Clear existing agents
-  const existingAgentsSnapshot = await getDocs(agentsCollection);
-  if (!existingAgentsSnapshot.empty) {
-    const deleteBatch = writeBatch(db);
-    existingAgentsSnapshot.docs.forEach(doc => {
-      deleteBatch.delete(doc.ref);
-    });
-    await deleteBatch.commit();
-    console.log("Existing agents cleared.");
+  const { error: deleteError } = await supabase
+    .from('agents')
+    .delete()
+    .neq('id', 'this-is-a-placeholder-to-delete-all-rows');
+  
+  if (deleteError) {
+      console.error("Error clearing agents:", deleteError);
+      throw deleteError;
   }
   
-  // Seed new agents
-  const seedBatch = writeBatch(db);
-  agents.forEach((agent) => {
-    const agentDocRef = doc(agentsCollection, agent.id);
-    const agentData: Omit<AgentDocument, 'id' | 'lastInteractionTime'> & { lastInteractionTime: any } = {
-      ...agent,
-      lastInteractionTime: Timestamp.fromDate(new Date(agent.lastInteractionTime)),
-    };
-    
-    if (agentData.pauseStartTime === undefined) {
-      delete agentData.pauseStartTime;
-    }
-     if (agentData.clientFeedback === undefined) {
-      delete agentData.clientFeedback;
-    }
+  console.log("Existing agents cleared.");
 
-    seedBatch.set(agentDocRef, agentData);
-  });
-  await seedBatch.commit();
+  // Seed new agents
+  const { error: insertError } = await supabase
+    .from('agents')
+    .insert(agents);
+
+  if (insertError) {
+      console.error("Error seeding agents:", insertError);
+      throw insertError;
+  }
+  
   console.log("New agents seeded.");
 }
 
 
 export async function updateAgent(agentId: string, data: Partial<Agent>) {
-  const agentRef = doc(db, 'agents', agentId);
-  
-  const updateData: { [key: string]: any } = { ...data };
-
-  if (data.lastInteractionTime) {
-    updateData.lastInteractionTime = Timestamp.fromDate(new Date(data.lastInteractionTime));
+  const { error } = await supabase
+    .from('agents')
+    .update(data)
+    .eq('id', agentId);
+    
+  if (error) {
+    console.error(`Error updating agent ${agentId}:`, error);
+    throw error;
   }
-  
-  if (data.hasOwnProperty('pauseStartTime')) {
-    if (data.pauseStartTime) {
-      updateData.pauseStartTime = Timestamp.fromDate(new Date(data.pauseStartTime));
-    } else {
-      updateData.pauseStartTime = deleteField();
-    }
-  }
-
-  if ('id' in updateData) {
-    delete updateData.id;
-  }
-  
-  await updateDoc(agentRef, updateData);
 }
 
 export async function addPauseLog(log: Omit<PauseLog, 'id'>) {
-    const logDocument: Omit<PauseLogDocument, 'id'> = {
-        ...log,
-        pauseStartTime: Timestamp.fromDate(new Date(log.pauseStartTime)),
-        pauseEndTime: Timestamp.fromDate(new Date(log.pauseEndTime)),
-    }
-  await addDoc(pauseLogsCollection, logDocument);
+  const { error } = await supabase
+    .from('pause_logs')
+    .insert([log]);
+
+  if (error) {
+    console.error('Error adding pause log:', error);
+    throw error;
+  }
 }
 
 export async function getPauseLogsInRange(startDate: Date, endDate: Date): Promise<PauseLog[]> {
-    const q = query(
-        pauseLogsCollection, 
-        where('pauseStartTime', '>=', Timestamp.fromDate(startDate)),
-        where('pauseStartTime', '<=', Timestamp.fromDate(endDate))
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-        const data = doc.data() as PauseLogDocument;
-        return {
-            id: doc.id,
-            ...data,
-            pauseStartTime: data.pauseStartTime.toDate().toISOString(),
-            pauseEndTime: data.pauseEndTime.toDate().toISOString(),
-        }
-    });
+    const { data, error } = await supabase
+        .from('pause_logs')
+        .select('*')
+        .gte('pause_start_time', startDate.toISOString())
+        .lte('pause_start_time', endDate.toISOString());
+
+    if (error) {
+        console.error('Error fetching pause logs:', error);
+        return [];
+    }
+
+    return data;
 }
 
 export async function addDailyReport(report: Omit<DailyReport, 'date'>) {
@@ -103,12 +77,29 @@ export async function addDailyReport(report: Omit<DailyReport, 'date'>) {
         ...report,
         date: today,
     };
-    const reportRef = doc(dailyReportsCollection, today);
-    await writeBatch(db).set(reportRef, reportWithDate).commit();
+
+    // Use upsert to create or overwrite the report for the same day
+    const { error } = await supabase
+        .from('daily_reports')
+        .upsert(reportWithDate, { onConflict: 'date' });
+
+    if (error) {
+        console.error('Error adding daily report:', error);
+        throw error;
+    }
 }
 
 export async function getDailyReports(days = 30): Promise<DailyReport[]> {
-    const q = query(dailyReportsCollection, orderBy('date', 'desc'), limit(days));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data() as DailyReport);
+    const { data, error } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(days);
+    
+    if (error) {
+        console.error('Error fetching daily reports:', error);
+        return [];
+    }
+
+    return data;
 }
