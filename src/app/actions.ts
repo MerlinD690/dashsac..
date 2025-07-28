@@ -81,8 +81,11 @@ export async function syncTomTicketData() {
       throw new Error("TomTicket API did not return success");
     }
 
-    const activeChats = tomTicketResponse.data;
-    console.log(`Found ${activeChats.length} active chats.`);
+    const allChats = tomTicketResponse.data;
+
+    // Filter for truly active chats (Aguardando or Em conversa)
+    const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
+    console.log(`Found ${activeChats.length} active chats (situation 1 or 2).`);
 
     // 2. Count active chats per agent using their TomTicket name
     const agentChatCounts: { [key: string]: number } = {};
@@ -106,7 +109,6 @@ export async function syncTomTicketData() {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
       
-      // *** FIX: Match using the tomticketName field. ***
       const tomticketName = agent.tomticketName;
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       

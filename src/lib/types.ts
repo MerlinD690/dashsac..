@@ -107,7 +107,7 @@ export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
 export interface TomTicketChat {
   id: number;
   protocolo: string;
-  status: number;
+  situation: number; // 1 - Aguardando, 2 - Em conversa, 3 - Finalizado
   tipo: string;
   id_cliente: number;
   nome_cliente: string;
