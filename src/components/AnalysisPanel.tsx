@@ -12,13 +12,28 @@ import {
   SheetFooter,
   SheetClose
 } from '@/components/ui/sheet';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { Bot, Users, Activity } from 'lucide-react';
+import { Input } from "@/components/ui/input"
+import { Bot, Users, Activity, Lock } from 'lucide-react';
 import { Agent, PauseLog, AnalysisOutput } from '@/lib/types';
 import { analyzeAgents } from '@/ai/flows/analyzeAgents';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Hardcoded password for the analysis feature
+const ANALYSIS_PASSWORD = "omoflow";
 
 function AnalysisResult({ result }: { result: AnalysisOutput }) {
   return (
@@ -51,7 +66,7 @@ function AnalysisResult({ result }: { result: AnalysisOutput }) {
         </CardHeader>
         <CardContent className="space-y-3">
           {result.agentPerformance
-            .sort((a, b) => b.clientsHandled - a.clientsHandled)
+            .sort((a, b) => a.name.localeCompare(b.name))
             .map((agent) => (
             <div key={agent.name} className="flex items-center justify-between rounded-lg border p-3">
               <p className="font-medium">{agent.name}</p>
@@ -116,7 +131,28 @@ function LoadingSkeleton() {
 export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLogs: PauseLog[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisOutput | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [password, setPassword] = useState("");
   const { toast } = useToast();
+
+  const handlePasswordCheck = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (password === ANALYSIS_PASSWORD) {
+        setIsSheetOpen(true);
+        // Reset password field for next time
+        setPassword("");
+        // Close the dialog - since we now control the sheet's open state
+        // we need to find a way to close the dialog. We can click the cancel button.
+        document.getElementById('close-password-dialog')?.click();
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Senha Incorreta",
+            description: "A senha para acessar a análise está incorreta.",
+        });
+        // Prevent dialog from closing
+    }
+  }
 
   const handleAnalysis = async () => {
     setIsLoading(true);
@@ -136,14 +172,60 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
     }
   };
 
+  const handleOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
+    if (!open) {
+        setAnalysisResult(null);
+    }
+  }
+
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="outline">
-          <Bot className="mr-2 h-4 w-4" />
-          Análise com IA
-        </Button>
-      </SheetTrigger>
+    <>
+    <AlertDialog>
+        <AlertDialogTrigger asChild>
+            <Button variant="outline">
+                <Bot className="mr-2 h-4 w-4" />
+                Análise com IA
+            </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Acesso Restrito</AlertDialogTitle>
+            <AlertDialogDescription>
+                Para acessar a análise de performance, por favor, insira a senha de administrador.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex items-center space-x-2">
+                <div className="grid flex-1 gap-2">
+                    <Input
+                        id="password"
+                        type="password"
+                        placeholder='********'
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                // We need to find the button and click it to trigger the check
+                                 const button = (e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector(
+                                    'button[data-dialog-action]'
+                                )) as HTMLButtonElement | null;
+                                button?.click();
+                            }
+                        }}
+                    />
+                </div>
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel id="close-password-dialog">Cancelar</AlertDialogCancel>
+                <AlertDialogAction data-dialog-action onClick={handlePasswordCheck}>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Desbloquear
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
       <SheetContent className="w-full max-w-md flex flex-col sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Análise de Performance com IA</SheetTitle>
@@ -171,5 +253,6 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
         </SheetFooter>
       </SheetContent>
     </Sheet>
+    </>
   );
 }
