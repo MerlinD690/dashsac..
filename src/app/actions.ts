@@ -71,10 +71,10 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 
 async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
-    const apiToken = process.env.TOMTICKET_API_TOKEN;
+    const apiToken = process.env.NEXT_PUBLIC_TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
-        throw new Error('API token (TOMTICKET_API_TOKEN) is not configured in server environment.');
+        throw new Error('API token (NEXT_PUBLIC_TOMTICKET_API_TOKEN) is not configured in server environment.');
     }
 
     let allChats: TomTicketChat[] = [];
