@@ -94,6 +94,7 @@ export default function Home() {
       setIsSyncing(true);
       try {
         const result = await syncTomTicketData();
+        console.log("SYNC_CLIENT: Sync finished. Result: ", result);
         if (!result.success) {
           toast({
             variant: 'destructive',
