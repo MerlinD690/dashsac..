@@ -12,14 +12,6 @@ interface TomTicketOperator {
     name: string;
 }
 
-// A interface TomTicketChat agora está em types.ts
-// interface TomTicketChat {
-//   id: string;
-//   protocolo: number;
-//   situation: number; // 1 - Aguardando, 2 - Em conversa, 3 - Finalizado
-//   operator: TomTicketOperator | null;
-// }
-
 interface TomTicketApiResponse {
   success: boolean;
   data: TomTicketChat[];
@@ -102,9 +94,9 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
 
     try {
         const fiveMinutesAgo = subMinutes(new Date(), 5);
-        // Formato esperado: YYYY-MM-DD HH:mm:ss
+        // Formato: YYYY-MM-DD HH:mm:ss
         const formattedDate = format(fiveMinutesAgo, 'yyyy-MM-dd HH:mm:ss');
-        // Codifica manualmente o espaço para %20, que é o padrão mais seguro para URLs.
+        // Codifica o espaço para %20, que é o padrão mais seguro para URLs.
         const encodedDate = formattedDate.replace(' ', '%20');
         
         const url = `${TOMTICKET_API_URL}/chat/list?creation_date_ge=${encodedDate}`;
@@ -114,19 +106,17 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
             headers: {
                 'Authorization': `Bearer ${apiToken}`,
             },
-            cache: 'no-store', // Garante que não estamos vendo uma resposta antiga em cache
+            cache: 'no-store',
         });
         
         const data: TomTicketApiResponse = await response.json();
 
         if (!response.ok) {
-            // Log detalhado para diagnosticar o erro
             console.error('TomTicket API Error:', {
                 status: response.status,
                 statusText: response.statusText,
                 body: data
             });
-            // Levanta um erro com a mensagem da API, se disponível.
             const errorMessage = data.message || `HTTP error! status: ${response.status}`;
             throw new Error(`Erro na API TomTicket: ${errorMessage}`);
         }
@@ -136,7 +126,6 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
     } catch (error) {
         console.error('Falha ao buscar chats do TomTicket:', error);
         if (error instanceof Error) {
-            // Repassa a mensagem de erro específica para o cliente
             throw new Error(`Falha na comunicação com a API TomTicket: ${error.message}`);
         }
         throw new Error("Ocorreu um erro desconhecido ao buscar chats do TomTicket.");
@@ -206,6 +195,3 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync" };
   }
 }
-    
-
-    
