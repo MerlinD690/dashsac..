@@ -161,26 +161,26 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
               const status = getStatus(agent);
               const isNextAgent = agent.id === nextAgentId;
               return (
-                <TableRow key={agent.id} className={cn(isNextAgent && "ring-2 ring-accent")}>
+                <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 text-primary-foreground hover:bg-primary/30")}>
                   <TableCell>
-                    <div className="font-medium">
+                    <div className={cn("font-medium", isNextAgent ? 'text-primary-foreground' : '')}>
                       {agent.name}
                     </div>
                   </TableCell>
                   <TableCell>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
+                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40')} onClick={() => handleUpdateClients(agent, -1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 0}>
                               <Minus className="h-4 w-4" />
                           </Button>
                           <span className="w-4 font-bold text-lg">{agent.activeClients}</span>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
+                          <Button variant="ghost" size="icon" className={cn("h-6 w-6", isNextAgent && 'hover:bg-primary/40')} onClick={() => handleUpdateClients(agent, 1)} disabled={!agent.isAvailable || agent.isOnPause || agent.activeClients === 5}>
                               <Plus className="h-4 w-4" />
                           </Button>
                       </div>
                   </TableCell>
                   <TableCell>
-                    <div className={`flex items-center gap-2 font-medium ${status.className}`}>
+                    <div className={cn('flex items-center gap-2 font-medium', status.className, isNextAgent && "text-primary-foreground/80")}>
                       {status.icon}
                       <span>{status.text}</span>
                     </div>
