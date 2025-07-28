@@ -335,7 +335,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                   <TableCell className="text-center">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable || agent.activeClients > 0 || agent.isOnPause}>
+                        <Button variant="outline" size="icon" onClick={() => handleTogglePause(agent)} disabled={!agent.isAvailable && !agent.isOnPause && agent.activeClients > 0}>
                           <Coffee className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
@@ -411,3 +411,5 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
     </>
   );
 }
+
+    
