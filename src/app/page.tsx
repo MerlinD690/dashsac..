@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import type { Agent, PauseLog } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
-import { Assistant } from '@/components/Assistant';
 import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
@@ -97,10 +96,6 @@ export default function Home() {
           </ClientOnly>
         )}
         
-        <ClientOnly>
-          <Assistant agents={agents} pauseLogs={pauseLogs} />
-        </ClientOnly>
-
         <footer className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-0">
             <ClientOnly>
                 <RealTimeClock />

@@ -1,7 +1,6 @@
 
 import type { Timestamp } from 'firebase/firestore';
 import { z } from 'genkit';
-import type { MessageData } from 'genkit/experimental/ai';
 
 export interface Agent {
   id: string;
@@ -46,9 +45,3 @@ export interface PauseLogDocument extends Omit<PauseLog, 'pauseStartTime' | 'pau
     pauseStartTime: Timestamp;
     pauseEndTime: Timestamp;
 }
-
-export const AssistantInputSchema = z.object({
-  history: z.array(z.custom<MessageData>()),
-  agents: z.array(AgentSchema),
-});
-export type AssistantInput = z.infer<typeof AssistantInputSchema>;
