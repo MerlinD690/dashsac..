@@ -72,10 +72,10 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     const runSync = async () => {
-      console.log('SYNC_CLIENT: Tentando sincronizar com o TomTicket...');
+      console.log('SYNC_CLIENT: Requesting sync with TomTicket...');
       try {
         const result = await syncTomTicketData();
-        console.log('SYNC_CLIENT: Sincronização concluída. Resultado:', result);
+        console.log('SYNC_CLIENT: Sync finished. Result:', result);
         
         if (result.success) {
           if (syncError) { // If there was an error before, show success message
@@ -97,7 +97,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
           }
         }
       } catch (error: any) {
-        console.error('SYNC_CLIENT: Erro crítico ao chamar a ação de sincronização.', error);
+        console.error('SYNC_CLIENT: Critical error calling sync action.', error);
         if (syncError !== error.message) {
             toast({
               variant: 'destructive',
@@ -385,5 +385,3 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
     </>
   );
 }
-
-    
