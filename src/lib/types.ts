@@ -69,26 +69,22 @@ const AgentPerformanceSchema = z.object({
     totalPauseTime: z.string().describe('Tempo total de pausa formatado como "X minutos" ou "Y segundos".'),
 });
 
+const AgentIdentifierSchema = z.object({
+    name: z.string(),
+    clientsHandled: z.number(),
+});
+
 export const AnalysisOutputSchema = z.object({
-  mostProductiveAgent: z
-    .object({
-      name: z.string(),
-      clientsHandled: z.number(),
-    })
-    .describe('O atendente que atendeu o maior número de clientes.'),
-  leastProductiveAgent: z
-    .object({
-      name: z.string(),
-      clientsHandled: z.number(),
-    })
-    .describe('O atendente que atendeu o menor número de clientes.'),
+  mostProductiveAgent: AgentIdentifierSchema.describe('O atendente que atendeu o maior número de clientes.'),
+  leastProductiveAgent: AgentIdentifierSchema.describe('O atendente que atendeu o menor número de clientes.'),
+  mostOverloadedAgent: AgentIdentifierSchema.describe('O atendente que parece estar mais sobrecarregado.'),
   agentPerformance: z
     .array(AgentPerformanceSchema)
     .describe('Lista de performance individual de cada atendente.'),
   overallSummary: z
     .string()
     .describe(
-      'Um resumo em um ou dois parágrafos sobre a performance geral do dia, destacando pontos positivos e possíveis melhorias.'
+      'Um resumo em um ou dois parágrafos sobre a performance geral do dia, incluindo dicas e recomendações sobre pausas, número de atendimentos e eficiência.'
     ),
 });
 export type AnalysisOutput = z.infer<typeof AnalysisOutputSchema>;

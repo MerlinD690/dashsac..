@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input"
-import { Bot, Users, Activity, Lock } from 'lucide-react';
+import { Bot, Users, Activity, Lock, Award } from 'lucide-react';
 import { Agent, PauseLog, AnalysisOutput } from '@/lib/types';
 import { analyzeAgents } from '@/ai/flows/analyzeAgents';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,21 @@ function AnalysisResult({ result }: { result: AnalysisOutput }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
+            <Award /> Atendente em Destaque
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+            <div className="flex flex-col gap-1 rounded-lg border p-3">
+                <p className="font-semibold text-blue-600">Possivelmente Sobrecarregado(a)</p>
+                <p className="text-muted-foreground">{result.mostOverloadedAgent.name}</p>
+                <p className="font-bold">{result.mostOverloadedAgent.clientsHandled} clientes</p>
+            </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Users /> Performance Individual
           </CardTitle>
         </CardHeader>
@@ -72,7 +87,7 @@ function AnalysisResult({ result }: { result: AnalysisOutput }) {
               <p className="font-medium">{agent.name}</p>
               <div className='text-right'>
                 <p>{agent.clientsHandled} clientes</p>
-                <p className="text-xs text-muted-foreground">{agent.totalPauseTime} em pausa</p>
+                <p className="text-xs text-muted-foreground">{agent.totalPauseTime}</p>
               </div>
             </div>
           ))}
@@ -82,7 +97,7 @@ function AnalysisResult({ result }: { result: AnalysisOutput }) {
       <Card>
         <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-                <Bot /> Resumo da IA
+                <Bot /> Resumo e Dicas da IA
             </CardTitle>
         </CardHeader>
         <CardContent>
@@ -103,6 +118,14 @@ function LoadingSkeleton() {
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                     <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-3">
                     <Skeleton className="h-20 w-full" />
                 </CardContent>
             </Card>

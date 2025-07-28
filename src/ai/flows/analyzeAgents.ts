@@ -6,6 +6,7 @@
 
 import { ai } from '@/ai/genkit';
 import { AnalysisInput, AnalysisInputSchema, AnalysisOutput, AnalysisOutputSchema } from '@/lib/types';
+import { googleAI } from '@genkit-ai/googleai';
 
 const analysisPrompt = ai.definePrompt({
   name: 'analysisPrompt',
@@ -30,8 +31,9 @@ Com base nesses dados, você deve:
     f. Defina o resultado formatado no campo 'totalPauseTime'.
 2.  Identificar o atendente mais produtivo (maior número de clientes atendidos).
 3.  Identificar o atendente menos produtivo (menor número de clientes atendidos).
-4.  Gerar um resumo de performance para cada atendente, incluindo nome, clientes atendidos e o tempo total de pausa formatado.
-5.  Escrever um resumo geral sobre o dia em português, destacando a produtividade geral e quaisquer observações ou recomendações importantes.
+4.  Identificar o atendente que parece mais sobrecarregado, considerando a combinação de alto número de clientes atendidos e baixo tempo de pausa em comparação com os outros.
+5.  Gerar um resumo de performance para cada atendente, incluindo nome, clientes atendidos e o tempo total de pausa formatado.
+6.  Escrever um resumo geral sobre o dia em português. No resumo, inclua um parágrafo separado com dicas e recomendações gerais sobre a importância de pausas para a produtividade, como gerenciar o número de atendimentos e a eficiência geral da equipe.
 
 Responda estritamente no formato JSON definido pelo esquema de saída.`,
 });
