@@ -13,13 +13,12 @@ import {
   SheetClose
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Bot, User, Users, Timer, Activity } from 'lucide-react';
+import { Bot, Users, Activity } from 'lucide-react';
 import { Agent, PauseLog, AnalysisOutput } from '@/lib/types';
 import { analyzeAgents } from '@/ai/flows/analyzeAgents';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from './ui/separator';
 
 function AnalysisResult({ result }: { result: AnalysisOutput }) {
   return (
@@ -145,23 +144,26 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
           Análise com IA
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px] flex flex-col">
+      <SheetContent className="w-full max-w-md flex flex-col sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Análise de Performance com IA</SheetTitle>
           <SheetDescription>
-            Clique no botão para que a IA analise os dados de performance dos atendentes e gere insights.
+            A IA irá analisar os dados de performance dos atendentes e gerar insights sobre o dia de trabalho.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-1 pr-4">
             {isLoading && <LoadingSkeleton />}
             {analysisResult && <AnalysisResult result={analysisResult} />}
             {!isLoading && !analysisResult && (
-                <div className="flex h-full items-center justify-center">
-                    <p className="text-muted-foreground">A análise da IA aparecerá aqui.</p>
+                <div className="flex h-full items-center justify-center rounded-lg border border-dashed">
+                    <div className='text-center text-muted-foreground'>
+                        <Bot className="mx-auto h-12 w-12" />
+                        <p className="mt-2">A análise da IA aparecerá aqui.</p>
+                    </div>
                 </div>
             )}
         </div>
-        <SheetFooter className='pt-4'>
+        <SheetFooter className='pt-4 border-t'>
             <Button onClick={handleAnalysis} disabled={isLoading} className='w-full'>
                 <Bot className="mr-2 h-4 w-4" />
                 {isLoading ? 'Analisando...' : 'Analisar Performance'}
@@ -171,4 +173,3 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
     </Sheet>
   );
 }
-

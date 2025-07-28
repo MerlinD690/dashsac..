@@ -5,7 +5,6 @@
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { GENKIT_ENV } from '@genkit-ai/next/plugin';
 
 export const ai = genkit({
   plugins: [
@@ -13,6 +12,6 @@ export const ai = genkit({
       apiKey: process.env.GEMINI_API_KEY,
     }),
   ],
-  logSinks: [GENKIT_ENV === 'dev' ? 'dev' : 'prod'],
-  enableTracing: GENKIT_ENV === 'dev',
+  logSinks: [process.env.NODE_ENV === 'development' ? 'dev' : 'prod'],
+  enableTracing: process.env.NODE_ENV === 'development',
 });
