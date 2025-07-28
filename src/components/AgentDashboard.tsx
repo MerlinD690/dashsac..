@@ -71,40 +71,48 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    // Function to run the sync
     const runSync = async () => {
-        console.log("Attempting to sync with TomTicket...");
+      console.log('SYNC_CLIENT: Tentando sincronizar com o TomTicket...');
+      try {
         const result = await syncTomTicketData();
-        if (!result.success) {
-            console.error("Sync failed:", result.message);
-            // Show error toast only if it's a new or different error
-            setSyncError((prevError) => {
-                if (prevError !== result.message) {
-                    toast({
-                        variant: "destructive",
-                        title: "Erro de Sincronização",
-                        description: `Não foi possível sincronizar com o TomTicket. A contagem de clientes pode estar desatualizada. (${result.message})`,
-                    });
-                }
-                return result.message || 'Erro desconhecido';
-            });
+        console.log('SYNC_CLIENT: Sincronização concluída.', result);
+        if (result.success) {
+          if (syncError) { // If there was an error before, show success message
+             toast({
+                title: "Sincronização Restaurada",
+                description: "A conexão com o TomTicket foi restaurada com sucesso.",
+              });
+          }
+          setSyncError(null);
         } else {
-            // Clear error on successful sync
-            if (syncError) {
-                setSyncError(null);
-                toast({
-                    title: "Sincronização Restaurada",
-                    description: "A conexão com o TomTicket foi restaurada com sucesso.",
-                });
-            }
+          // Only show toast if the error message is new
+          if (syncError !== result.message) {
+              toast({
+                variant: 'destructive',
+                title: 'Erro de Sincronização',
+                description: `Falha ao buscar dados do TomTicket. A contagem de clientes pode estar desatualizada. (${result.message})`,
+              });
+              setSyncError(result.message || 'Erro desconhecido');
+          }
         }
+      } catch (error: any) {
+        console.error('SYNC_CLIENT: Erro crítico ao chamar a ação de sincronização.', error);
+        if (syncError !== error.message) {
+            toast({
+              variant: 'destructive',
+              title: 'Erro de Sincronização Crítico',
+              description: `Ocorreu um erro inesperado: ${error.message}`,
+            });
+            setSyncError(error.message);
+        }
+      }
     };
 
     // Run immediately on component mount
     runSync();
 
-    // Then run every 1 second
-    const intervalId = setInterval(runSync, 1000);
+    // Then run every 30 seconds
+    const intervalId = setInterval(runSync, 30000); // 30 seconds interval
 
     // Cleanup on component unmount
     return () => clearInterval(intervalId);
@@ -376,3 +384,5 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
     </>
   );
 }
+
+    
