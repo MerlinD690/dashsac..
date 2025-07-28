@@ -76,21 +76,24 @@ export async function syncTomTicketData() {
   try {
     // 1. Fetch active chats from TomTicket
     const tomTicketResponse = await getActiveChats();
-    if (!tomTicketResponse.success) {
-      console.error("TomTicket API returned an error:", tomTicketResponse);
-      throw new Error("TomTicket API did not return success");
+    console.log("TomTicket API Response:", JSON.stringify(tomTicketResponse, null, 2));
+
+    if (!tomTicketResponse.success || !tomTicketResponse.data) {
+      console.error("TomTicket API returned an error or no data:", tomTicketResponse.message);
+      throw new Error(`TomTicket API did not return success: ${tomTicketResponse.message || 'No data property'}`);
     }
 
     const allChats = tomTicketResponse.data;
 
     // Filter for truly active chats (Aguardando or Em conversa)
     const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
-    console.log(`Found ${activeChats.length} active chats (situation 1 or 2).`);
+    console.log(`Found ${allChats.length} total chats. Found ${activeChats.length} active chats (situation 1 or 2).`);
 
     // 2. Count active chats per agent using their TomTicket name
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
-      const agentName = chat.operator?.name;
+      // Defensive check: Ensure operator and operator.name exist
+      const agentName = chat.operator?.name; 
       if (agentName) {
         if (!agentChatCounts[agentName]) {
           agentChatCounts[agentName] = 0;
@@ -98,39 +101,47 @@ export async function syncTomTicketData() {
         agentChatCounts[agentName]++;
       }
     }
-    console.log("TomTicket agent chat counts:", agentChatCounts);
+    console.log("Counted TomTicket agent chats:", agentChatCounts);
 
     // 3. Update Firestore
     const agentsCollection = collection(db, 'AtendimentoSAC');
     const agentsSnapshot = await getDocs(agentsCollection);
     const batch = writeBatch(db);
     const now = new Date().toISOString();
+    let updatesMade = 0;
 
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
       
       const tomticketName = agent.tomticketName;
+      // Get the count for the current agent, default to 0 if not in the list
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
       // Update only if the count is different
       if (agent.activeClients !== tomTicketCount) {
-        console.log(`Updating ${agent.name}: from ${agent.activeClients} to ${tomTicketCount}`);
+        console.log(`Updating ${agent.name} (TomTicket: ${tomticketName}): from ${agent.activeClients} to ${tomTicketCount}`);
         batch.update(agentRef, { 
           activeClients: tomTicketCount,
           lastInteractionTime: now
         });
+        updatesMade++;
       }
     });
 
-    await batch.commit();
-    console.log("Firestore batch commit successful.");
+    if (updatesMade > 0) {
+        await batch.commit();
+        console.log(`Firestore batch commit successful. Updated ${updatesMade} agents.`);
+    } else {
+        console.log("No changes in active client counts. No Firestore update needed.");
+    }
+    
     return { success: true, message: "Sync successful" };
   } catch (error) {
-    console.error("Failed to sync TomTicket data:", error);
+    console.error("[CRITICAL] Failed to sync TomTicket data:", error);
     if (error instanceof Error) {
         return { success: false, message: error.message };
     }
-    return { success: false, message: "An unknown error occurred" };
+    return { success: false, message: "An unknown error occurred during sync" };
   }
 }
