@@ -1,3 +1,4 @@
+
 'use server';
 
 require('dotenv').config();
@@ -79,57 +80,72 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         throw new Error('API token (TOMTICKET_API_TOKEN) is not configured in server environment.');
     }
 
-    let allChats: TomTicketChat[] = [];
-    let page = 1;
-    let keepFetching = true;
-
-    while (keepFetching) {
-        try {
-            // Situation=2 means "Em conversa"
-            const url = `${TOMTICKET_API_URL}/chat/list?situation=2&page=${page}`;
-            console.log(`Fetching active chats from TomTicket... URL: ${url}`);
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiToken}`,
-                },
-                cache: 'no-store',
-            });
-            
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error('TomTicket API Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    body: errorBody
-                });
-                throw new Error(`Erro na API TomTicket: HTTP status ${response.status}`);
-            }
-
-            const data: TomTicketApiResponse = await response.json();
-            
-            if (data.success && data.data && data.data.length > 0) {
-                allChats = allChats.concat(data.data);
-                if (data.next_page) {
-                    page = data.next_page;
-                    await new Promise(resolve => setTimeout(resolve, 250)); // Gentle pause
-                } else {
-                    keepFetching = false;
-                }
-            } else {
-                keepFetching = false;
-            }
-
-        } catch (error) {
-            console.error('Failed to fetch chats from TomTicket:', error);
-            if (error instanceof Error) {
-                throw new Error(`Communication failure with TomTicket API: ${error.message}`);
-            }
-            throw new Error("An unknown error occurred while fetching chats from TomTicket.");
+    try {
+        // 1. First call to get pagination info
+        const initialUrl = `${TOMTICKET_API_URL}/chat/list?situation=2&page=1`;
+        const initialResponse = await fetch(initialUrl, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiToken}` },
+            cache: 'no-store',
+        });
+        
+        if (!initialResponse.ok) {
+             const errorBody = await initialResponse.text();
+             console.error('TomTicket API Error (Initial Call):', {
+                status: initialResponse.status,
+                statusText: initialResponse.statusText,
+                body: errorBody
+             });
+             throw new Error(`Erro na API TomTicket: HTTP status ${initialResponse.status}`);
         }
+
+        const initialData: TomTicketApiResponse = await initialResponse.json();
+        
+        if (!initialData.success || !initialData.data) {
+             console.error('TomTicket API returned success=false on initial call', initialData.message);
+             return []; // No data or error
+        }
+
+        let allChats: TomTicketChat[] = initialData.data;
+        const totalPages = initialData.pages || 1;
+
+        // 2. If there are more pages, fetch them concurrently
+        if (totalPages > 1) {
+            const pagePromises: Promise<TomTicketApiResponse>[] = [];
+            for (let page = 2; page <= totalPages; page++) {
+                const url = `${TOMTICKET_API_URL}/chat/list?situation=2&page=${page}`;
+                const promise = fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${apiToken}` },
+                    cache: 'no-store',
+                }).then(res => {
+                    if (!res.ok) {
+                        console.error(`Error fetching page ${page}:`, res.statusText);
+                        return { success: false, data: [] }; // Return empty on error to not break Promise.all
+                    }
+                    return res.json() as Promise<TomTicketApiResponse>;
+                });
+                pagePromises.push(promise);
+            }
+
+            const pageResults = await Promise.all(pagePromises);
+            
+            for (const result of pageResults) {
+                if (result.success && result.data) {
+                    allChats = allChats.concat(result.data);
+                }
+            }
+        }
+
+        return allChats;
+
+    } catch (error) {
+        console.error('Failed to fetch chats from TomTicket:', error);
+        if (error instanceof Error) {
+            throw new Error(`Communication failure with TomTicket API: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while fetching chats from TomTicket.");
     }
-    return allChats;
 }
 
 
