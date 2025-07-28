@@ -105,7 +105,8 @@ export async function syncTomTicketData() {
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
-      // Match using the tomticketName field.
+      
+      // *** FIX: Match using the tomticketName field. ***
       const tomticketName = agent.tomticketName;
       const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
