@@ -100,7 +100,7 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
 
     try {
         const fiveMinutesAgo = subMinutes(new Date(), 5);
-        const formattedDate = format(fiveMinutesAgo, 'yyyy-MM-dd HH:mm:ss');
+        const formattedDate = fiveMinutesAgo.toISOString(); // Use ISO format
         
         const url = new URL(`${TOMTICKET_API_URL}/chat/list`);
         url.searchParams.append('creation_date_ge', formattedDate);
@@ -108,7 +108,7 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
         const response = await fetch(url.toString(), {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${apiToken}`, // Exact formatting as per documentation
+                'Authorization': `Bearer ${apiToken}`,
             },
             cache: 'no-store',
         });
