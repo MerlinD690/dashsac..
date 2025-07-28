@@ -71,7 +71,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 relative">
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 relative pb-20">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-4">
              <OmoLogo />
@@ -100,12 +100,12 @@ export default function Home() {
           </ClientOnly>
         )}
         
-        <footer className="fixed bottom-4 right-8 z-50 md:bottom-8 md:right-10">
-            <ClientOnly>
-                <RealTimeClock />
-            </ClientOnly>
-        </footer>
       </main>
+      <footer className="fixed bottom-4 right-8 z-50 md:bottom-8 md:right-10">
+          <ClientOnly>
+              <RealTimeClock />
+          </ClientOnly>
+      </footer>
     </div>
   );
 }
