@@ -57,7 +57,7 @@ function AnalysisResult({ result }: { result: AnalysisOutput }) {
               <p className="font-medium">{agent.name}</p>
               <div className='text-right'>
                 <p>{agent.clientsHandled} clientes</p>
-                <p className="text-xs text-muted-foreground">{agent.totalPauseTime.toFixed(2)} min em pausa</p>
+                <p className="text-xs text-muted-foreground">{agent.totalPauseTime} min em pausa</p>
               </div>
             </div>
           ))}
