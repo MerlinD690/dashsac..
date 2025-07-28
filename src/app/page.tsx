@@ -39,7 +39,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const q = query(collection(db, "agents"));
+      const q = query(collection(db, "AtendimentoSAC"));
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const agentsData: Agent[] = [];
         querySnapshot.forEach((doc) => {

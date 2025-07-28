@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 
 export async function clearAndSeedAgents(agents: AgentDocument[]) {
   const batch = writeBatch(db);
-  const agentsCollection = collection(db, 'agents');
+  const agentsCollection = collection(db, 'AtendimentoSAC');
 
   // 1. Delete all existing agents
   const querySnapshot = await getDocs(agentsCollection);
@@ -19,7 +19,7 @@ export async function clearAndSeedAgents(agents: AgentDocument[]) {
   // 2. Seed new agents
   agents.forEach((agent, index) => {
     const agentId = `agent-${index + 1}`;
-    const agentRef = doc(db, 'agents', agentId);
+    const agentRef = doc(db, 'AtendimentoSAC', agentId);
     batch.set(agentRef, agent);
   });
   console.log('New agents marked for seeding.');
@@ -30,7 +30,7 @@ export async function clearAndSeedAgents(agents: AgentDocument[]) {
 }
 
 export async function updateAgent(agentId: string, data: Partial<AgentDocument>) {
-  const agentRef = doc(db, 'agents', agentId);
+  const agentRef = doc(db, 'AtendimentoSAC', agentId);
   await updateDoc(agentRef, data);
 }
 
