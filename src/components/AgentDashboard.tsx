@@ -103,7 +103,10 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: now,
         });
-        updates.pauseStartTime = undefined;
+        // When pause ends, we no longer need the pauseStartTime
+        const { pauseStartTime, ...restOfUpdates } = updates;
+        onUpdateAgent(agent.id, { ...restOfUpdates, pauseStartTime: undefined });
+        return;
     }
 
     onUpdateAgent(agent.id, updates);
