@@ -161,7 +161,7 @@ export function AgentDashboard({ agents, onUpdateAgent, onAddPauseLog }: { agent
               const status = getStatus(agent);
               const isNextAgent = agent.id === nextAgentId;
               return (
-                <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 text-primary-foreground hover:bg-primary/30")}>
+                <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 hover:bg-primary/30")}>
                   <TableCell>
                     <div className={cn("font-medium", isNextAgent ? 'text-primary-foreground' : '')}>
                       {agent.name}
