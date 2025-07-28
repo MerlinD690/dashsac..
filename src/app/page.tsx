@@ -8,6 +8,7 @@ import { ExportButton } from '@/components/ExportButton';
 import ClientOnly from '@/components/ClientOnly';
 import RealTimeClock from '@/components/RealTimeClock';
 import { Progress } from '@/components/ui/progress';
+import { AnalysisPanel } from '@/components/AnalysisPanel';
 
 const initialAgentsData: Omit<Agent, 'id' | 'lastInteractionTime' | 'activeClients' | 'isAvailable' | 'totalClientsHandled' | 'avgTimePerClient' | 'isOnPause'>[] = [
     { name: 'Beatriz' },
@@ -78,7 +79,10 @@ export default function Home() {
               OmoFlow Dashboard
             </h1>
           </div>
-          <ExportButton agents={agents} pauseLogs={pauseLogs} />
+          <div className="flex items-center gap-2">
+            <AnalysisPanel agents={agents} pauseLogs={pauseLogs} />
+            <ExportButton agents={agents} pauseLogs={pauseLogs} />
+          </div>
         </header>
 
         {isLoading ? (
