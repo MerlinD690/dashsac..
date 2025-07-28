@@ -3,7 +3,7 @@ import type { AgentDocument } from './types';
 
 export const seedAgentsData: AgentDocument[] = [
   {
-    name: 'GUILHERME',
+    name: 'Ana',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -12,7 +12,7 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'GABRIEL',
+    name: 'Beatriz',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -21,7 +21,7 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'TAINÁ',
+    name: 'Carlos',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -30,7 +30,7 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'JOSÉ',
+    name: 'Daniel',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -39,7 +39,7 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'VITÓRIA',
+    name: 'Eduarda',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -48,7 +48,43 @@ export const seedAgentsData: AgentDocument[] = [
     isOnPause: false,
   },
   {
-    name: 'JULIANA',
+    name: 'Fernanda',
+    lastInteractionTime: new Date().toISOString(),
+    activeClients: 0,
+    isAvailable: true,
+    totalClientsHandled: 0,
+    avgTimePerClient: 0,
+    isOnPause: false,
+  },
+  {
+    name: 'Gustavo',
+    lastInteractionTime: new Date().toISOString(),
+    activeClients: 0,
+    isAvailable: true,
+    totalClientsHandled: 0,
+    avgTimePerClient: 0,
+    isOnPause: false,
+  },
+  {
+    name: 'Heitor',
+    lastInteractionTime: new Date().toISOString(),
+    activeClients: 0,
+    isAvailable: true,
+    totalClientsHandled: 0,
+    avgTimePerClient: 0,
+    isOnPause: false,
+  },
+  {
+    name: 'Isabela',
+    lastInteractionTime: new Date().toISOString(),
+    activeClients: 0,
+    isAvailable: true,
+    totalClientsHandled: 0,
+    avgTimePerClient: 0,
+    isOnPause: false,
+  },
+  {
+    name: 'João',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
