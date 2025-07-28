@@ -103,8 +103,8 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
     // Run immediately on component mount
     runSync();
 
-    // Then run every 500 milliseconds
-    const intervalId = setInterval(runSync, 500);
+    // Then run every 1 second
+    const intervalId = setInterval(runSync, 1000);
 
     // Cleanup on component unmount
     return () => clearInterval(intervalId);
