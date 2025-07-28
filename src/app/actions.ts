@@ -105,9 +105,9 @@ export async function syncTomTicketData() {
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
-      // Match using the tomticketName field, or the real name as a fallback.
-      const tomticketName = agent.tomticketName || agent.name;
-      const tomTicketCount = agentChatCounts[tomticketName] || 0;
+      // Match using the tomticketName field.
+      const tomticketName = agent.tomticketName;
+      const tomTicketCount = tomticketName ? agentChatCounts[tomticketName] || 0 : 0;
       
       // Update only if the count is different
       if (agent.activeClients !== tomTicketCount) {
