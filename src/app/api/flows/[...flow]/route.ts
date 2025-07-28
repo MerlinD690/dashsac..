@@ -5,6 +5,4 @@
 import { nextHandler } from '@genkit-ai/next';
 import '@/ai/flows/analyzeAgents';
 
-export const POST = nextHandler({
-    
-});
+export const POST = nextHandler();
