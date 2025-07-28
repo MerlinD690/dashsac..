@@ -59,15 +59,17 @@ const findNextBestAgent = (agents: Agent[]): string | null => {
 };
 
 
-export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
+export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: Agent[]; setAgents: React.Dispatch<React.SetStateAction<Agent[]>>, onAddPauseLog: (log: Omit<PauseLog, 'id'>) => void; }) {
   const { toast } = useToast();
   
   const nextAgentId = findNextBestAgent(agents);
 
-  const handleUpdate = (agentId: string, updates: Partial<AgentDocument>) => {
+  // Server action to be called in the background
+  const handleUpdateOnServer = (agentId: string, updates: Partial<AgentDocument>) => {
       updateAgent(agentId, updates).catch(error => {
           console.error(`Failed to update agent ${agentId}`, error);
-          toast({ variant: 'destructive', title: 'Erro de Rede', description: 'Não foi possível atualizar o atendente no Firestore.' });
+          toast({ variant: 'destructive', title: 'Erro de Sincronização', description: 'Não foi possível salvar a alteração. A interface pode estar dessincronizada.' });
+          // Note: In a real-world app, you might want to revert the optimistic update here.
       });
   };
 
@@ -78,16 +80,33 @@ export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onA
     });
   }
 
+  // Optimistic update function
+  const optimisticUpdate = (agentId: string, updates: Partial<Agent>) => {
+    setAgents(currentAgents => 
+      currentAgents.map(agent => 
+        agent.id === agentId ? { ...agent, ...updates } : agent
+      )
+    );
+  };
+
   const handleUpdateClients = (agent: Agent, change: 1 | -1) => {
     const newCount = agent.activeClients + change;
     if (newCount < 0 || newCount > 5) return;
 
     const now = new Date();
     
-    const updates: Partial<AgentDocument> = {
+    const updatesForServer: Partial<AgentDocument> = {
       activeClients: newCount,
       lastInteractionTime: now.toISOString(),
     };
+    
+    // Optimistically update the UI
+    optimisticUpdate(agent.id, {
+        activeClients: newCount,
+        lastInteractionTime: now.toISOString(),
+    });
+
+
     if (change === 1) {
        const lastInteraction = new Date(agent.lastInteractionTime);
        const timeDiffMinutes = (now.getTime() - lastInteraction.getTime()) / (1000 * 60);
@@ -96,11 +115,20 @@ export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onA
       const totalMinutesSoFar = agent.avgTimePerClient * agent.totalClientsHandled;
       const newAvgTimePerClient = (totalMinutesSoFar + timeDiffMinutes) / newTotalClientsHandled;
       
-      updates.totalClientsHandled = newTotalClientsHandled;
-      updates.avgTimePerClient = newAvgTimePerClient;
+      updatesForServer.totalClientsHandled = newTotalClientsHandled;
+      updatesForServer.avgTimePerClient = newAvgTimePerClient;
+      
+      // Optimistically update these as well
+      optimisticUpdate(agent.id, {
+          totalClientsHandled: newTotalClientsHandled,
+          avgTimePerClient: newAvgTimePerClient,
+      });
+
       playNotificationSound();
     }
-    handleUpdate(agent.id, updates);
+
+    // Call server action in the background
+    handleUpdateOnServer(agent.id, updatesForServer);
   };
 
   const handleToggleAvailability = (agent: Agent, available: boolean) => {
@@ -112,7 +140,12 @@ export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onA
       });
       return;
     }
-    handleUpdate(agent.id, { isAvailable: available });
+    
+    // Optimistic update
+    optimisticUpdate(agent.id, { isAvailable: available });
+
+    // Server update
+    handleUpdateOnServer(agent.id, { isAvailable: available });
   };
 
   const handleTogglePause = (agent: Agent) => {
@@ -127,21 +160,28 @@ export function AgentDashboard({ agents, onAddPauseLog }: { agents: Agent[]; onA
 
     const isOnPause = !agent.isOnPause;
     const now = new Date().toISOString();
-    const updates: Partial<AgentDocument> = { isOnPause, lastInteractionTime: now };
+    const updatesForServer: Partial<AgentDocument> = { isOnPause, lastInteractionTime: now };
+    const updatesForClient: Partial<Agent> = { isOnPause, lastInteractionTime: now };
 
     if (isOnPause) {
-        updates.pauseStartTime = now;
+        updatesForServer.pauseStartTime = now;
+        updatesForClient.pauseStartTime = now;
     } else if(agent.pauseStartTime) {
         const pauseLog = {
             agentName: agent.name,
             pauseStartTime: agent.pauseStartTime,
             pauseEndTime: now,
         };
-        handleAddLog(pauseLog);
-        updates.pauseStartTime = undefined;
+        handleAddLog(pauseLog); // This is already a background operation
+        updatesForServer.pauseStartTime = undefined;
+        updatesForClient.pauseStartTime = undefined;
     }
+    
+    // Optimistic update
+    optimisticUpdate(agent.id, updatesForClient);
 
-    handleUpdate(agent.id, updates);
+    // Server update
+    handleUpdateOnServer(agent.id, updatesForServer);
   };
 
 

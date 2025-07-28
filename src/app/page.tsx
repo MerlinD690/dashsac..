@@ -138,6 +138,7 @@ export default function Home() {
           <ClientOnly>
             <AgentDashboard 
               agents={agents}
+              setAgents={setAgents}
               onAddPauseLog={handleAddPauseLog}
             />
           </ClientOnly>
