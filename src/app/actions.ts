@@ -113,7 +113,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
                 allChats = allChats.concat(data.data);
                 if (data.next_page) {
                     page = data.next_page;
-                    await new Promise(resolve => setTimeout(resolve, 250));
+                    await new Promise(resolve => setTimeout(resolve, 250)); // Gentle pause
                 } else {
                     keepFetching = false;
                 }
@@ -184,7 +184,7 @@ export async function syncTomTicketData() {
         await batch.commit();
         console.log(`SERVER_SYNC: Firestore batch commit successful. Updated ${updatesMade} agents.`);
     } else {
-        await batch.commit();
+        await batch.commit(); // commit the reset even if no chats are active
         console.log("SERVER_SYNC: No agents to update, but reset batch committed.");
     }
     
