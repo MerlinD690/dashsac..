@@ -5,7 +5,6 @@
 
 import { ai } from '@/ai/genkit';
 import { AnalysisInput, AnalysisInputSchema, AnalysisOutput, AnalysisOutputSchema } from '@/lib/types';
-import { googleAI } from '@genkit-ai/googleai';
 
 const analysisPrompt = ai.definePrompt({
   name: 'analysisPrompt',
