@@ -21,14 +21,14 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: [
-      'firebase-admin',
-      'firebase-functions',
-      'stream-native',
-      '@opentelemetry/api',
-      '@opentelemetry/sdk-trace-base',
-      '@opentelemetry/sdk-trace-node',
-      '@opentelemetry/exporter-jaeger',
-    ],
+    'firebase-admin',
+    'firebase-functions',
+    'stream-native',
+    '@opentelemetry/api',
+    '@opentelemetry/sdk-trace-base',
+    '@opentelemetry/sdk-trace-node',
+    '@opentelemetry/exporter-jaeger',
+  ],
 };
 
 export default nextConfig;
