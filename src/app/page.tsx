@@ -10,6 +10,10 @@ import { AnalysisPanel } from '@/components/AnalysisPanel';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query } from 'firebase/firestore';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { clearAndSeedAgents } from './actions';
+import { seedAgentsData } from '@/lib/seed-data';
 
 function OmoLogo() {
   return (
@@ -29,6 +33,7 @@ export default function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
@@ -47,13 +52,12 @@ export default function Home() {
           toast({
             variant: 'destructive',
             title: 'Erro ao carregar dados',
-            description: 'Não foi possível buscar os dados dos atendentes. Verifique a conexão com o Firebase.'
+            description: 'Não foi possível buscar os dados dos atendentes. Verifique a conexão e as regras de segurança do Firestore.'
           });
           setError('Falha na conexão em tempo real com o Firestore.');
           setIsLoading(false);
       });
         
-      // Cleanup subscription on unmount
       return () => unsubscribe();
     } catch (e: any) {
         console.error(e.message);
@@ -66,6 +70,27 @@ export default function Home() {
       // With Firestore, we don't need to manage pause logs in local state
       // as they are written directly to the DB by the server action
   };
+
+  const handleSeedData = async () => {
+    setIsSeeding(true);
+    try {
+      await clearAndSeedAgents(seedAgentsData);
+      toast({
+        title: 'Sucesso!',
+        description: 'Os dados dos atendentes foram resetados com sucesso.',
+      });
+    } catch (error) {
+      console.error("Failed to seed data:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao resetar dados',
+        description: 'Não foi possível popular o banco de dados. Verifique o console para mais detalhes.',
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
 
   if (error) {
     return (
@@ -90,6 +115,10 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button onClick={handleSeedData} variant="outline" size="sm" disabled={isSeeding}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isSeeding ? 'animate-spin' : ''}`} />
+              {isSeeding ? 'Resetando...' : 'Resetar Dados'}
+            </Button>
             <AnalysisPanel agents={agents} pauseLogs={pauseLogs} />
             <ExportButton agents={agents} pauseLogs={pauseLogs} />
           </div>
@@ -99,6 +128,11 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center flex-1">
              <Progress value={33} className="w-1/2" />
              <p className="mt-4 text-muted-foreground">Carregando atendentes do Firestore...</p>
+          </div>
+        ) : agents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center flex-1 text-center">
+            <p className="text-lg font-medium text-muted-foreground">Nenhum atendente encontrado.</p>
+            <p className="text-sm text-muted-foreground">Clique em "Resetar Dados" para popular o dashboard com dados de exemplo.</p>
           </div>
         ) : (
           <ClientOnly>
