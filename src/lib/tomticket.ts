@@ -1,12 +1,15 @@
+
 'use server';
 
-import { subMinutes, format } from 'date-fns';
 import type { TomTicketApiResponse, TomTicketChat } from './types';
 
-// This function is no longer used, the logic was moved to actions.ts
-// to ensure it runs in a pure server environment.
-// It is kept here to avoid breaking imports, but it's not called.
+// A lógica foi movida para actions.ts para garantir que ela
+// rode em um ambiente de servidor puro e tenha acesso direto
+// às variáveis de ambiente.
+// Esta função é mantida para evitar quebras de importação, mas não é chamada.
 export async function getActiveChats(apiToken: string): Promise<TomTicketChat[]> {
    console.warn("getActiveChats in lib/tomticket.ts was called, but is deprecated. Logic has moved to actions.ts");
    return [];
 }
+
+    
