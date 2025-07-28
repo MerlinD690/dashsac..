@@ -4,23 +4,17 @@ import { subMinutes, format } from 'date-fns';
 
 const TOMTICKET_API_URL = 'https://api.tomticket.com/v2.0';
 
-export async function getActiveChats(): Promise<TomTicketApiResponse> {
-  const apiToken = process.env.NEXT_PUBLIC_TOMTICKET_API_TOKEN;
-
+// The function now receives the token as an argument
+export async function getActiveChats(apiToken: string): Promise<TomTicketApiResponse> {
   if (!apiToken) {
-    console.error("NEXT_PUBLIC_TOMTICKET_API_TOKEN não está configurado. Verifique o arquivo .env ou as configurações de ambiente da Vercel.");
-    throw new Error('NEXT_PUBLIC_TOMTICKET_API_TOKEN não está configurado nas variáveis de ambiente.');
+    throw new Error('API token was not provided to getActiveChats function.');
   }
 
   try {
-    // Calculate the timestamp for 5 minutes ago
     const fiveMinutesAgo = subMinutes(new Date(), 5);
-    // Format it to YYYY-MM-DD HH:mm:ss
     const formattedDate = format(fiveMinutesAgo, 'yyyy-MM-dd HH:mm:ss');
-    // URL-encode the date string
     const encodedDate = encodeURIComponent(formattedDate);
     
-    // Append the query parameter to the URL
     const requestUrl = `${TOMTICKET_API_URL}/chat/list?creation_date_ge=${encodedDate}`;
 
     const response = await fetch(requestUrl, {
@@ -35,7 +29,6 @@ export async function getActiveChats(): Promise<TomTicketApiResponse> {
     if (!response.ok) {
         const errorBody = await response.text();
         console.error("Erro na API TomTicket:", errorBody);
-        // Special check for 401 Unauthorized
         if (response.status === 401) {
              throw new Error(`Erro na API TomTicket: Unauthorized`);
         }
@@ -52,4 +45,3 @@ export async function getActiveChats(): Promise<TomTicketApiResponse> {
     throw new Error("Ocorreu um erro desconhecido ao buscar chats do TomTicket.");
   }
 }
-

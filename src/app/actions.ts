@@ -74,8 +74,15 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 export async function syncTomTicketData() {
   console.log("Starting TomTicket data sync...");
   try {
-    // 1. Fetch active chats from TomTicket
-    const tomTicketResponse = await getActiveChats();
+    // Read the token securely on the server-side
+    const apiToken = process.env.TOMTICKET_API_TOKEN;
+    if (!apiToken) {
+        console.error("[CRITICAL] TOMTICKET_API_TOKEN is not configured on the server.");
+        throw new Error("Server is not configured with TomTicket API token.");
+    }
+
+    // 1. Fetch active chats from TomTicket, passing the token
+    const tomTicketResponse = await getActiveChats(apiToken);
     console.log("TomTicket API Response:", JSON.stringify(tomTicketResponse, null, 2));
 
     if (!tomTicketResponse.success || !tomTicketResponse.data) {
