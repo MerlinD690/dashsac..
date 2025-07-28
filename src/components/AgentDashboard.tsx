@@ -194,7 +194,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
     }, 300);
   };
   
-  const handleAvailabilitySwitchClick = (agent: Agent) => {
+  const handleAvailabilityIconClick = (agent: Agent) => {
     if (agent.activeClients > 0 || agent.isOnPause) {
         toast({
             variant: "destructive",
@@ -304,6 +304,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
               const status = getStatus(agent);
               const isNextAgent = agent.id === nextAgentId;
               const isUpdating = updatingClients.has(agent.id);
+              const isDisabled = agent.activeClients > 0 || agent.isOnPause;
 
               return (
                 <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 hover:bg-primary/30")}>
@@ -343,25 +344,29 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Switch
-                                checked={agent.isAvailable}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    handleAvailabilitySwitchClick(agent);
-                                }}
-                                disabled={agent.activeClients > 0 || agent.isOnPause}
-                                style={{
-                                    pointerEvents: (agent.activeClients > 0 || agent.isOnPause) ? 'none' : 'auto'
-                                }}
-                            />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Clique para alterar a disponibilidade (requer senha)</p>
-                        </TooltipContent>
-                    </Tooltip>
+                  <TableCell>
+                    <div className='flex items-center justify-end gap-2'>
+                        <Switch
+                            checked={agent.isAvailable}
+                            disabled={true}
+                        />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className='h-7 w-7'
+                                    onClick={() => handleAvailabilityIconClick(agent)}
+                                    disabled={isDisabled}
+                                >
+                                    <Lock className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Alterar disponibilidade (requer senha)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
