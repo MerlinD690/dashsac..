@@ -5,7 +5,6 @@
 
 import { ai } from '@/ai/genkit';
 import { AnalysisInput, AnalysisInputSchema, AnalysisOutput, AnalysisOutputSchema } from '@/lib/types';
-import { z } from 'zod';
 
 const analysisPrompt = ai.definePrompt({
   name: 'analysisPrompt',
