@@ -76,7 +76,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
              <OmoLogo />
             <h1 className="text-3xl font-bold font-headline tracking-tight text-primary">
-              Fila de Atendimento Sac
+              Atendimento Sac
             </h1>
           </div>
           <div className="flex items-center gap-2">
