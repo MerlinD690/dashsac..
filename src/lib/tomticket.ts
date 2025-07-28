@@ -7,6 +7,7 @@ export async function getActiveChats(): Promise<TomTicketApiResponse> {
   const apiToken = process.env.TOMTICKET_API_TOKEN;
 
   if (!apiToken) {
+    console.error("TOMTICKET_API_TOKEN não está configurado. Verifique o arquivo .env ou as configurações de ambiente da Vercel.");
     throw new Error('TOMTICKET_API_TOKEN não está configurado nas variáveis de ambiente.');
   }
 
@@ -30,6 +31,10 @@ export async function getActiveChats(): Promise<TomTicketApiResponse> {
     return data;
   } catch (error) {
     console.error('Falha ao buscar chats do TomTicket:', error);
-    throw error;
+    if (error instanceof Error) {
+        // Lança o erro para que a função que chamou saiba que algo deu errado
+        throw new Error(`Falha na comunicação com a API TomTicket: ${error.message}`);
+    }
+    throw new Error("Ocorreu um erro desconhecido ao buscar chats do TomTicket.");
   }
 }
