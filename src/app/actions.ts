@@ -93,13 +93,8 @@ async function getActiveChats(): Promise<TomTicketChat[]> {
     }
 
     try {
-        const fiveMinutesAgo = subMinutes(new Date(), 5);
-        // Formato: YYYY-MM-DD HH:mm:ss
-        const formattedDate = format(fiveMinutesAgo, 'yyyy-MM-dd HH:mm:ss');
-        // Codifica o espaço para %20, que é o padrão mais seguro para URLs.
-        const encodedDate = formattedDate.replace(' ', '%20');
-        
-        const url = `${TOMTICKET_API_URL}/chat/list?creation_date_ge=${encodedDate}`;
+        // Removendo completamente o parâmetro de data para evitar o erro "Invalid date"
+        const url = `${TOMTICKET_API_URL}/chat/list`;
 
         const response = await fetch(url, {
             method: 'GET',
@@ -139,8 +134,9 @@ export async function syncTomTicketData() {
     const allChats = await getActiveChats();
     
     // Filtramos aqui para garantir que temos os chats corretos
+    // Situação 1 = Aguardando, 2 = Em conversa
     const activeChats = allChats.filter(chat => chat.situation === 1 || chat.situation === 2);
-    console.log(`Found ${allChats.length} total chats in the last 5 minutes. Found ${activeChats.length} active chats (situation 1 or 2).`);
+    console.log(`Found ${allChats.length} total chats from API. Found ${activeChats.length} active chats (situation 1 or 2).`);
 
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
