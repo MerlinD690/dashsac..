@@ -4,6 +4,7 @@ import type { AgentDocument } from './types';
 export const seedAgentsData: AgentDocument[] = [
   {
     name: 'Camila',
+    tomticketName: 'Atendente SAC - CM',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -13,6 +14,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Laura',
+    tomticketName: 'Atendente SAC - LC',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -22,6 +24,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Juliana',
+    tomticketName: 'Atendente SAC - JB',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -31,6 +34,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Flaviane',
+    tomticketName: 'Atendente SAC - FS',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -40,6 +44,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Beatriz',
+    tomticketName: 'Atendente SAC - BL',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -49,6 +54,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Sophia',
+    tomticketName: 'Sophia', // Assuming direct match if not provided
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -58,6 +64,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Valquiria',
+    tomticketName: 'Atendente SAC - VC',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -67,6 +74,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Larissa',
+    tomticketName: 'Atendente SAC - LF',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -76,6 +84,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Lays',
+    tomticketName: 'Atendente SAC - LA',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,
@@ -85,6 +94,7 @@ export const seedAgentsData: AgentDocument[] = [
   },
   {
     name: 'Giovanna',
+    tomticketName: 'Atendente SAC - GS',
     lastInteractionTime: new Date().toISOString(),
     activeClients: 0,
     isAvailable: true,

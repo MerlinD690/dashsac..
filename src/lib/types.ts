@@ -4,6 +4,7 @@ import { z } from 'zod';
 export interface Agent {
   id: string; // O ID do documento no Firestore
   name: string;
+  tomticketName?: string; // Nome usado no sistema TomTicket
   lastInteractionTime: string; // ISO string
   activeClients: number;
   isAvailable: boolean;
@@ -17,6 +18,7 @@ export interface Agent {
 // Como os dados do atendente são armazenados no Firestore (sem o ID no corpo do doc)
 export interface AgentDocument {
   name: string;
+  tomticketName?: string; // Nome usado no sistema TomTicket
   lastInteractionTime: string;
   activeClients: number;
   isAvailable: boolean;
@@ -82,6 +84,7 @@ export interface AgentWithPauseData extends Agent {
 export const AgentWithPauseDataSchema = z.object({
   id: z.string(),
   name: z.string(),
+  tomticketName: z.string().optional(),
   lastInteractionTime: z.string(),
   activeClients: z.number(),
   isAvailable: z.boolean(),

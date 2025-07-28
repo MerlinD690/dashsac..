@@ -19,8 +19,7 @@ export async function clearAndSeedAgents(agents: AgentDocument[]) {
 
   // 2. Seed new agents
   agents.forEach((agent, index) => {
-    const agentId = `agent-${index + 1}`;
-    const agentRef = doc(db, 'AtendimentoSAC', agentId);
+    const agentRef = doc(agentsCollection); // Let firestore generate ID
     batch.set(agentRef, agent);
   });
   console.log('New agents marked for seeding.');
@@ -85,7 +84,7 @@ export async function syncTomTicketData() {
     const activeChats = tomTicketResponse.data;
     console.log(`Found ${activeChats.length} active chats.`);
 
-    // 2. Count active chats per agent
+    // 2. Count active chats per agent using their TomTicket name
     const agentChatCounts: { [key: string]: number } = {};
     for (const chat of activeChats) {
       if (chat.nome_atendente) {
@@ -95,7 +94,7 @@ export async function syncTomTicketData() {
         agentChatCounts[chat.nome_atendente]++;
       }
     }
-    console.log("Agent chat counts:", agentChatCounts);
+    console.log("TomTicket agent chat counts:", agentChatCounts);
 
     // 3. Update Firestore
     const agentsCollection = collection(db, 'AtendimentoSAC');
@@ -106,7 +105,9 @@ export async function syncTomTicketData() {
     agentsSnapshot.docs.forEach(doc => {
       const agent = doc.data() as AgentDocument;
       const agentRef = doc.ref;
-      const tomTicketCount = agentChatCounts[agent.name] || 0;
+      // Match using the tomticketName field, or the real name as a fallback.
+      const tomticketName = agent.tomticketName || agent.name;
+      const tomTicketCount = agentChatCounts[tomticketName] || 0;
       
       // Update only if the count is different
       if (agent.activeClients !== tomTicketCount) {
