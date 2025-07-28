@@ -8,17 +8,30 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog, AgentDocument } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Coffee, Minus, Plus, UserCheck, UserX } from 'lucide-react';
+import { Coffee, Minus, Plus, UserCheck, UserX, Lock } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
 import ClientOnly from './ClientOnly';
 import { addPauseLog, updateAgent } from '@/app/actions';
 import { useState, useEffect } from 'react';
+
+const AVAILABILITY_PASSWORD = "Omo123456789.";
 
 // Function to play a simple beep sound
 function playNotificationSound() {
@@ -90,6 +103,10 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
   const { toast } = useToast();
   const [updatingClients, setUpdatingClients] = useState<Set<string>>(new Set());
   
+  const [password, setPassword] = useState("");
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [agentToUpdate, setAgentToUpdate] = useState<Agent | null>(null);
+
   const nextAgentId = findNextBestAgent(agents);
 
   // Server action to be called in the background
@@ -176,23 +193,49 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
         });
     }, 300);
   };
-
-  const handleToggleAvailability = (agent: Agent, available: boolean) => {
-    if (!available && agent.activeClients > 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Ação não permitida',
-        description: 'Não é possível desativar um atendente com clientes ativos.',
-      });
-      return;
+  
+  const handleAvailabilitySwitchClick = (agent: Agent) => {
+    if (agent.activeClients > 0 || agent.isOnPause) {
+        toast({
+            variant: "destructive",
+            title: "Ação não permitida",
+            description: "Não é possível alterar a disponibilidade de um atendente com clientes ativos ou em pausa.",
+        });
+        return;
     }
-    
-    // Optimistic update
-    optimisticUpdate(agent.id, { isAvailable: available });
-
-    // Server update
-    handleUpdateOnServer(agent.id, { isAvailable: available });
+    setAgentToUpdate(agent);
+    setIsPasswordDialogOpen(true);
   };
+
+  const handlePasswordCheckAndToggle = () => {
+    if (password === AVAILABILITY_PASSWORD) {
+        if (agentToUpdate) {
+            const available = !agentToUpdate.isAvailable;
+            // Optimistic update
+            optimisticUpdate(agentToUpdate.id, { isAvailable: available });
+            // Server update
+            handleUpdateOnServer(agentToUpdate.id, { isAvailable: available });
+            toast({
+                title: "Sucesso!",
+                description: `A disponibilidade de ${agentToUpdate.name} foi alterada.`,
+            })
+        }
+        closePasswordDialog();
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Senha Incorreta",
+            description: "A senha para alterar a disponibilidade está incorreta.",
+        });
+    }
+  };
+
+  const closePasswordDialog = () => {
+    setIsPasswordDialogOpen(false);
+    setPassword("");
+    setAgentToUpdate(null);
+  };
+
 
   const handleTogglePause = (agent: Agent) => {
     if (agent.activeClients > 0) {
@@ -242,6 +285,7 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
   });
 
   return (
+    <>
     <TooltipProvider>
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
@@ -300,11 +344,20 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
                     </Tooltip>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Switch
-                      checked={agent.isAvailable}
-                      onCheckedChange={(checked) => handleToggleAvailability(agent, checked)}
-                      disabled={agent.activeClients > 0 || agent.isOnPause}
-                    />
+                    <div onClick={() => handleAvailabilitySwitchClick(agent)} className="inline-block">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Switch
+                                    checked={agent.isAvailable}
+                                    disabled={agent.activeClients > 0 || agent.isOnPause}
+                                    style={{ pointerEvents: 'none' }} 
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Clique para alterar a disponibilidade (requer senha)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -318,5 +371,34 @@ export function AgentDashboard({ agents, setAgents, onAddPauseLog }: { agents: A
         </div>
       </div>
     </TooltipProvider>
+
+    <AlertDialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Acesso Restrito</AlertDialogTitle>
+            <AlertDialogDescription>
+                Para alterar a disponibilidade de <strong>{agentToUpdate?.name}</strong>, por favor, insira a senha de administrador.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex items-center space-x-2">
+                <Input
+                    id="password"
+                    type="password"
+                    placeholder='********'
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handlePasswordCheckAndToggle(); }}
+                />
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={closePasswordDialog}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePasswordCheckAndToggle}>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Confirmar
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
