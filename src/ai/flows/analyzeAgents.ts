@@ -19,12 +19,14 @@ Responda SEMPRE em português do Brasil.
 Dados dos Atendentes (o tempo de pausa já foi calculado e formatado):
 {{{json agents}}}
 
+Total de Clientes Atendidos no Dia: {{{totalClientsToday}}}
+
 Com base nesses dados, você deve:
 1.  O campo 'totalPauseTime' já contém o tempo de pausa formatado. Use-o diretamente.
 2.  Identificar o atendente mais produtivo (maior número de clientes atendidos). Este será o "Atendente em Destaque" do dia.
 3.  Identificar o atendente menos produtivo (menor número de clientes atendidos).
 4.  Gerar um resumo de performance para cada atendente, usando os dados fornecidos (nome, clientes atendidos, tempo de pausa).
-5.  Escrever um resumo geral sobre o dia. No resumo, inclua um parágrafo separado com dicas e recomendações gerais sobre a importância de pausas para a produtividade, como gerenciar o número de atendimentos e a eficiência geral da equipe, mantendo um tom construtivo e positivo.
+5.  Escrever um resumo geral sobre o dia, levando em conta o número total de clientes atendidos. No resumo, inclua um parágrafo separado com dicas e recomendações gerais sobre a importância de pausas para a produtividade, como gerenciar o número de atendimentos e a eficiência geral da equipe, mantendo um tom construtivo e positivo.
 
 Responda estritamente no formato JSON definido pelo esquema de saída.`,
 });
@@ -43,7 +45,7 @@ const analyzeAgentsFlow = ai.defineFlow(
         totalPauseTime: agent.totalPauseTimeFormatted || '0 segundos',
     }));
 
-    const { output } = await analysisPrompt({ agents: input.agents });
+    const { output } = await analysisPrompt(input);
     
     if (!output) {
         throw new Error("A análise da IA não retornou uma resposta válida.");

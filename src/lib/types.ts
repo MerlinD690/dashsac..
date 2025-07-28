@@ -67,6 +67,7 @@ export interface PauseLogDocument extends Omit<PauseLog, 'pauseStartTime' | 'pau
 // AI Related types
 export const AnalysisInputSchema = z.object({
   agents: z.array(AgentWithPauseDataSchema),
+  totalClientsToday: z.number().describe('O número total de clientes atendidos por todos os atendentes no dia.'),
 });
 export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
 

@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input"
-import { Bot, Users, Activity, Lock, Award } from 'lucide-react';
+import { Bot, Users, Activity, Lock, Award, Users2 } from 'lucide-react';
 import { Agent, PauseLog, AnalysisOutput, AgentWithPauseData } from '@/lib/types';
 import { analyzeAgents } from '@/ai/flows/analyzeAgents';
 import { useToast } from '@/hooks/use-toast';
@@ -35,9 +35,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 // Hardcoded password for the analysis feature
 const ANALYSIS_PASSWORD = "Omo123456789.";
 
-function AnalysisResult({ result }: { result: AnalysisOutput }) {
+function AnalysisResult({ result, totalClients }: { result: AnalysisOutput, totalClients: number }) {
   return (
     <div className="space-y-4 text-sm">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <Users2 /> Total de Clientes Atendidos
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="text-4xl font-bold text-center p-4">
+                    {totalClients}
+                </div>
+            </CardContent>
+        </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -67,7 +80,7 @@ function AnalysisResult({ result }: { result: AnalysisOutput }) {
         <CardContent>
             <div className="flex flex-col gap-1 rounded-lg border p-3">
                 <p className="font-semibold text-primary">{result.mostProductiveAgent.name}</p>
-                <p className="text-muted-foreground">foi o(a) atendente mais produtivo(a) hoje.</p>
+                <p className="text-muted-foreground">foi o(a) atendente mais produtiva do dia.</p>
                 <p className="font-bold">{result.mostProductiveAgent.clientsHandled} clientes atendidos</p>
             </div>
         </CardContent>
@@ -113,6 +126,14 @@ function LoadingSkeleton() {
     return (
         <div className="space-y-4">
             <Card>
+                 <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-20 w-full" />
+                </CardContent>
+            </Card>
+            <Card>
                 <CardHeader>
                     <Skeleton className="h-6 w-1/2" />
                 </CardHeader>
@@ -125,7 +146,7 @@ function LoadingSkeleton() {
                 <CardHeader>
                     <Skeleton className="h-6 w-1/2" />
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent>
                     <Skeleton className="h-20 w-full" />
                 </CardContent>
             </Card>
@@ -173,6 +194,7 @@ function calculateAndFormatPauseTime(agentName: string, logs: PauseLog[]): strin
 export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLogs: PauseLog[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisOutput | null>(null);
+  const [totalClientsToday, setTotalClientsToday] = useState(0);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [password, setPassword] = useState("");
   const { toast } = useToast();
@@ -205,8 +227,11 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
         ...agent,
         totalPauseTimeFormatted: calculateAndFormatPauseTime(agent.name, pauseLogs),
       }));
+
+      const totalClients = agents.reduce((acc, agent) => acc + agent.totalClientsHandled, 0);
+      setTotalClientsToday(totalClients);
       
-      const result = await analyzeAgents({ agents: agentsWithPauseData });
+      const result = await analyzeAgents({ agents: agentsWithPauseData, totalClientsToday: totalClients });
       setAnalysisResult(result);
     } catch (error) {
       console.error('AI analysis failed:', error);
@@ -283,7 +308,7 @@ export function AnalysisPanel({ agents, pauseLogs }: { agents: Agent[], pauseLog
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-1 pr-4">
             {isLoading && <LoadingSkeleton />}
-            {analysisResult && <AnalysisResult result={analysisResult} />}
+            {analysisResult && <AnalysisResult result={analysisResult} totalClients={totalClientsToday} />}
             {!isLoading && !analysisResult && (
                 <div className="flex h-full items-center justify-center rounded-lg border border-dashed">
                     <div className='text-center text-muted-foreground'>
