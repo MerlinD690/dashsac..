@@ -87,8 +87,10 @@ export default function Home() {
   
   // TomTicket API sync logic
   useEffect(() => {
+    let isSyncingRef = false; // Use a ref-like variable to prevent re-entrant calls
+
     const handleSync = async () => {
-      if (isSyncing) return;
+      isSyncingRef = true;
       setIsSyncing(true);
       try {
         const result = await syncTomTicketData();
@@ -107,6 +109,7 @@ export default function Home() {
         });
       } finally {
         setIsSyncing(false);
+        isSyncingRef = false;
       }
     };
 
@@ -114,11 +117,16 @@ export default function Home() {
     handleSync();
 
     // Set up interval for subsequent syncs
-    const intervalId = setInterval(handleSync, 5000); // Sync every 5 seconds
+    const intervalId = setInterval(() => {
+        if (!isSyncingRef) {
+            handleSync();
+        }
+    }, 5000); // Sync every 5 seconds
 
     return () => clearInterval(intervalId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: We only want this to run once on mount
   }, []);
+
 
   const handleSeedData = async () => {
     setIsSeeding(true);
