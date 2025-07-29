@@ -75,7 +75,7 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 // --- LÓGICA DE SINCRONIZAÇÃO TOMTICKET (RECONSTRUÍDA DO ZERO) ---
 
 /**
- * Busca os chats ativos da API do TomTicket.
+ * Busca os chats ativos da API do TomTicket, respeitando o rate limit.
  * @returns Uma lista de todos os chats ativos.
  */
 async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
@@ -86,32 +86,78 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
   }
 
   const baseUrl = 'https://api.tomticket.com/v2.0/chat/list';
-  const url = `${baseUrl}?situation=2&page=1`; // Busca somente a primeira página por enquanto
+  const allChats: TomTicketChat[] = [];
 
   try {
-    const response = await fetch(url, {
+    // 1. Primeira chamada para descobrir a paginação
+    const firstPageUrl = `${baseUrl}?situation=2&page=1`;
+    const firstResponse = await fetch(firstPageUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      cache: 'no-store', // Garante que a requisição não seja cacheada
+      headers: { 'Authorization': `Bearer ${apiToken}` },
+      cache: 'no-store',
     });
 
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`Erro na API TomTicket (${response.status}): ${errorBody}`);
-        throw new Error(`Falha na comunicação com a API TomTicket: status ${response.status}`);
+    if (!firstResponse.ok) {
+      const errorBody = await firstResponse.text();
+      console.error(`Erro na API TomTicket (página 1: ${firstResponse.status}): ${errorBody}`);
+      throw new Error(`Falha na comunicação com a API TomTicket: status ${firstResponse.status}`);
     }
 
-    const result: TomTicketApiResponse = await response.json();
-    
-    if (result.success && result.data) {
-        return result.data;
-    } else {
-        return [];
+    const firstResult: TomTicketApiResponse = await firstResponse.json();
+    if (firstResult.success && firstResult.data) {
+      allChats.push(...firstResult.data);
     }
+
+    const totalPages = firstResult.pagination.last_page;
+    if (totalPages <= 1) {
+      return allChats;
+    }
+
+    // 2. Criar uma lista de páginas restantes para buscar
+    const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+    
+    // 3. Processar em lotes para respeitar o rate limit (3 req/sec)
+    const batchSize = 3;
+    for (let i = 0; i < remainingPages.length; i += batchSize) {
+        const batch = remainingPages.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(page => {
+            const url = `${baseUrl}?situation=2&page=${page}`;
+            return fetch(url, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${apiToken}` },
+                cache: 'no-store',
+            }).then(async (res) => {
+                if (!res.ok) {
+                    // Loga o erro mas não quebra o lote inteiro
+                    console.error(`Erro ao buscar página ${page}: ${res.status}`);
+                    return null; // Retorna nulo para ser filtrado depois
+                }
+                return res.json() as Promise<TomTicketApiResponse>;
+            }).catch(err => {
+                console.error(`Erro de rede na página ${page}:`, err);
+                return null;
+            });
+        });
+
+        const results = await Promise.all(batchPromises);
+
+        for (const result of results) {
+            if (result && result.success && result.data) {
+                allChats.push(...result.data);
+            }
+        }
+
+        // Pausa de 1.1 segundos entre os lotes para garantir a conformidade com o rate limit
+        if (i + batchSize < remainingPages.length) {
+            await new Promise(resolve => setTimeout(resolve, 1100));
+        }
+    }
+    
+    return allChats;
+
   } catch (error) {
-    console.error('Erro ao buscar chats da API do TomTicket:', error);
+    console.error('Erro geral ao buscar chats da API do TomTicket:', error);
     throw error;
   }
 }
@@ -127,6 +173,7 @@ export async function syncTomTicketData() {
     // 1. Contar clientes por atendente da API
     const agentClientCount = new Map<string, number>();
     for (const chat of activeChats) {
+        // Apenas contabiliza se o chat tiver um operador atribuído
         if (chat.operator && chat.operator.name) {
             const agentName = chat.operator.name;
             agentClientCount.set(agentName, (agentClientCount.get(agentName) || 0) + 1);
@@ -144,15 +191,17 @@ export async function syncTomTicketData() {
 
     for (const agent of ourAgents) {
         const agentRef = doc(db, 'AtendimentoSAC', agent.id);
+        // A contagem de clientes para este atendente é o que veio da API, ou 0 se ele não estiver na lista.
         const activeClients = agentClientCount.get(agent.tomticketName || '') || 0;
         
-        // Se a contagem for diferente, atualiza
+        // Se a contagem for diferente da que temos, ou se não houver clientes ativos (para atualizar o tempo)
+        // Isso garante que o lastInteractionTime seja atualizado mesmo para atendentes que zeraram os clientes
         if (agent.activeClients !== activeClients) {
             batch.update(agentRef, { 
                 activeClients: activeClients,
-                lastInteractionTime: now 
+                lastInteractionTime: now // Atualiza o tempo da última interação para refletir a sincronização
             });
-             console.log(`Atualizando ${agent.name}: ${activeClients} clientes ativos.`);
+             console.log(`Atualizando ${agent.name}: ${agent.activeClients} -> ${activeClients} clientes ativos.`);
         }
     }
     
@@ -161,5 +210,6 @@ export async function syncTomTicketData() {
 
   } catch (error) {
     console.error('Erro durante a sincronização com o TomTicket:', error);
+    // Não relançamos o erro para não quebrar o intervalo no front-end
   }
 }
