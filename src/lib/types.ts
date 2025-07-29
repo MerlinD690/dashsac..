@@ -10,7 +10,6 @@ export interface Agent {
   isAvailable: boolean;
   totalClientsHandled: number;
   avgTimePerClient: number; // in minutes
-  clientFeedback?: string;
   isOnPause: boolean;
   pauseStartTime?: string; // ISO string
 }
@@ -43,12 +42,11 @@ export interface PauseLogDocument {
     pauseEndTime: string;
 }
 
-
-// Tipos relacionados à IA (permanecem os mesmos)
+// Tipos relacionados à IA
 export const AgentPerformanceSchema = z.object({
     name: z.string().describe('Nome do atendente.'),
     clientsHandled: z.number().describe('Total de clientes atendidos.'),
-    totalPauseTime: z.string().describe('Tempo total de pausa formatado (ex: "X minutos" ou "Y segundos"). Este valor já vem calculado.'),
+    totalPauseTime: z.string().describe('Tempo total de pausa formatado (ex: "X minutos" ou "Y segundos").'),
 });
 
 const AgentIdentifierSchema = z.object({
@@ -65,9 +63,9 @@ export const AnalysisOutputSchema = z.object({
   overallSummary: z
     .string()
     .describe(
-      'Um resumo em um ou dois parágrafos sobre a performance geral do dia, incluindo dicas e recomendações sobre pausas, número de atendimentos e eficiência.'
+      'Um resumo em um ou dois parágrafos sobre a performance geral do dia, incluindo dicas e recomendações.'
     ),
-  historicalAnalysis: z.string().optional().describe("Uma análise de tendências de performance baseada nos dados históricos. Inclui insights sobre consistência (quem se destaca positiva ou negativamente ao longo do tempo), possível sobrecarga de trabalho e recomendações estratégicas. Sempre use os números e dados para embasar sua análise."),
+  historicalAnalysis: z.string().optional().describe("Uma análise de tendências de performance baseada nos dados históricos."),
 });
 export type AnalysisOutput = z.infer<typeof AnalysisOutputSchema>;
 
@@ -77,21 +75,15 @@ export interface DailyReport extends AnalysisOutput {
 }
 
 // Este tipo é usado quando passamos os dados para a IA, incluindo o tempo de pausa pré-calculado
-export interface AgentWithPauseData extends Agent {
+export interface AgentWithPauseData {
+  name: string;
+  totalClientsHandled: number;
   totalPauseTimeFormatted: string;
 }
 
 export const AgentWithPauseDataSchema = z.object({
-  id: z.string(),
   name: z.string(),
-  tomticketName: z.string().optional(),
-  lastInteractionTime: z.string(),
-  activeClients: z.number(),
-  isAvailable: z.boolean(),
   totalClientsHandled: z.number(),
-  avgTimePerClient: z.number(),
-  isOnPause: z.boolean(),
-  pauseStartTime: z.string().optional(),
   totalPauseTimeFormatted: z.string(),
 });
 
