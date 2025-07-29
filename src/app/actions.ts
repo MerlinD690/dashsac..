@@ -106,6 +106,9 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     const firstResult: TomTicketApiResponse = await firstResponse.json();
     if (firstResult.success && firstResult.data) {
       allChats.push(...firstResult.data);
+    } else if (!firstResult.success) {
+      console.error(`A API TomTicket retornou um erro na página 1: ${firstResult.message}`);
+      // Decidimos não lançar um erro aqui para não quebrar o ciclo, mas logamos.
     }
 
     const totalPages = firstResult.pagination.last_page;
@@ -133,7 +136,12 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
                     console.error(`Erro ao buscar página ${page}: ${res.status}`);
                     return null; // Retorna nulo para ser filtrado depois
                 }
-                return res.json() as Promise<TomTicketApiResponse>;
+                const pageResult = await res.json() as TomTicketApiResponse;
+                if (!pageResult.success) {
+                    console.error(`A API TomTicket retornou um erro na página ${page}: ${pageResult.message}`);
+                    return null;
+                }
+                return pageResult;
             }).catch(err => {
                 console.error(`Erro de rede na página ${page}:`, err);
                 return null;
@@ -143,7 +151,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         const results = await Promise.all(batchPromises);
 
         for (const result of results) {
-            if (result && result.success && result.data) {
+            if (result && result.data) {
                 allChats.push(...result.data);
             }
         }
