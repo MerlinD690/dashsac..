@@ -147,7 +147,6 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-             {isSyncing && <Zap className="h-4 w-4 animate-spin text-primary" />}
             <Button onClick={handleSeedData} variant="outline" size="sm" disabled={isSeeding}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isSeeding ? 'animate-spin' : ''}`} />
               {isSeeding ? 'Resetando...' : 'Resetar Dados'}
