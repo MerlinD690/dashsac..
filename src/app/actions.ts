@@ -1,4 +1,3 @@
-
 'use server';
 
 require('dotenv').config();
@@ -77,6 +76,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     const apiToken = process.env.TOMTICKET_API_TOKEN;
 
     if (!apiToken) {
+        console.error('API token (TOMTICKET_API_TOKEN) is not configured in server environment.');
         throw new Error('API token (TOMTICKET_API_TOKEN) is not configured in server environment.');
     }
 
