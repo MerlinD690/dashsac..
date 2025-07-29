@@ -72,34 +72,94 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 }
 
 
-// --- LÓGICA DE SINCRONIZAÇÃO TOMTICKET (RECRIADA DO ZERO) ---
+// --- LÓGICA DE SINCRONIZAÇÃO TOMTICKET (RECONSTRUÍDA DO ZERO) ---
 
 /**
- * Busca os chats ativos da API do TomTicket, respeitando o rate limit.
+ * Busca os chats ativos da API do TomTicket.
  * @returns Uma lista de todos os chats ativos.
  */
 async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
-  // A lógica de busca será implementada aqui no próximo passo.
-  console.log('Fase 1: getActiveChatsFromApi foi chamada, mas ainda não tem lógica.');
-  return []; // Retorna um array vazio por enquanto.
+  const apiToken = process.env.TOMTICKET_API_TOKEN;
+  if (!apiToken) {
+    console.error('TOMTICKET_API_TOKEN não está definido no arquivo .env');
+    throw new Error('Token da API não configurado.');
+  }
+
+  const baseUrl = 'https://api.tomticket.com/v2.0/chat/list';
+  const url = `${baseUrl}?situation=2&page=1`; // Busca somente a primeira página por enquanto
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+      },
+      cache: 'no-store', // Garante que a requisição não seja cacheada
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`Erro na API TomTicket (${response.status}): ${errorBody}`);
+        throw new Error(`Falha na comunicação com a API TomTicket: status ${response.status}`);
+    }
+
+    const result: TomTicketApiResponse = await response.json();
+    
+    if (result.success && result.data) {
+        return result.data;
+    } else {
+        return [];
+    }
+  } catch (error) {
+    console.error('Erro ao buscar chats da API do TomTicket:', error);
+    throw error;
+  }
 }
 
 /**
  * Sincroniza os dados do TomTicket com o Firestore.
- * 1. Busca os chats ativos da API.
- * 2. Conta quantos clientes cada atendente tem.
- * 3. Atualiza o campo 'activeClients' no Firestore.
  */
 export async function syncTomTicketData() {
   try {
-    console.log('Fase 1: Iniciando syncTomTicketData.');
+    console.log('Iniciando sincronização com TomTicket...');
     const activeChats = await getActiveChatsFromApi();
     
-    // A lógica de contagem e atualização será implementada aqui no próximo passo.
-    console.log(`Fase 1: ${activeChats.length} chats recebidos (ainda é um esqueleto).`);
+    // 1. Contar clientes por atendente da API
+    const agentClientCount = new Map<string, number>();
+    for (const chat of activeChats) {
+        if (chat.operator && chat.operator.name) {
+            const agentName = chat.operator.name;
+            agentClientCount.set(agentName, (agentClientCount.get(agentName) || 0) + 1);
+        }
+    }
+
+    // 2. Buscar todos os atendentes do nosso Firestore
+    const agentsCollection = collection(db, 'AtendimentoSAC');
+    const snapshot = await getDocs(agentsCollection);
+    const ourAgents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as AgentDocument }));
+    
+    // 3. Atualizar cada atendente no Firestore
+    const batch = writeBatch(db);
+    const now = new Date().toISOString();
+
+    for (const agent of ourAgents) {
+        const agentRef = doc(db, 'AtendimentoSAC', agent.id);
+        const activeClients = agentClientCount.get(agent.tomticketName || '') || 0;
+        
+        // Se a contagem for diferente, atualiza
+        if (agent.activeClients !== activeClients) {
+            batch.update(agentRef, { 
+                activeClients: activeClients,
+                lastInteractionTime: now 
+            });
+             console.log(`Atualizando ${agent.name}: ${activeClients} clientes ativos.`);
+        }
+    }
+    
+    await batch.commit();
+    console.log('Sincronização com TomTicket finalizada com sucesso.');
 
   } catch (error) {
     console.error('Erro durante a sincronização com o TomTicket:', error);
-    // Não vamos mais jogar o erro para não quebrar o cliente, apenas logar.
   }
 }
