@@ -90,7 +90,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
 
   try {
     // 1. Primeira chamada para descobrir a paginação
-    const firstPageUrl = `${baseUrl}?page=1`; // Removemos o &situation=2
+    const firstPageUrl = `${baseUrl}?page=1`;
     const firstResponse = await fetch(firstPageUrl, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${apiToken}` },
@@ -108,13 +108,13 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
       allChats.push(...firstResult.data);
     } else if (!firstResult.success) {
       console.error(`A API TomTicket retornou um erro na página 1: ${firstResult.message || 'Mensagem de erro não disponível.'}`);
-      // Não lançamos erro, mas logamos para não quebrar o ciclo.
     }
 
     const totalPages = firstResult.pagination.last_page;
     if (totalPages <= 1) {
       // Filtra os chats da primeira página antes de retornar
-      return allChats.filter(chat => chat.situation === 2);
+      // O campo situation vem como STRING da API ("2") e não como número. Usamos == para coerção de tipo.
+      return allChats.filter(chat => chat.situation == 2);
     }
     
     // 2. Criar uma lista de páginas restantes para buscar
@@ -125,7 +125,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         const batch = remainingPages.slice(i, i + batchSize);
         
         const batchPromises = batch.map(page => {
-            const url = `${baseUrl}?page=${page}`; // Também sem o situation
+            const url = `${baseUrl}?page=${page}`;
             return fetch(url, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${apiToken}` },
@@ -162,7 +162,8 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     }
     
     // Filtra todos os chats coletados para retornar apenas os ativos
-    return allChats.filter(chat => chat.situation === 2);
+    // O campo situation vem como STRING da API ("2") e não como número. Usamos == para coerção de tipo.
+    return allChats.filter(chat => chat.situation == 2);
 
   } catch (error) {
     console.error('Erro geral ao buscar chats da API do TomTicket:', error);
@@ -175,7 +176,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
  */
 export async function syncTomTicketData() {
   try {
-    // 1. Busca apenas os chats já filtrados (situation: 2)
+    // 1. Busca apenas os chats já filtrados
     const activeChats = await getActiveChatsFromApi();
     console.log(`[Sync] Encontrados ${activeChats.length} chats ativos (situation: 2) na API.`);
     
