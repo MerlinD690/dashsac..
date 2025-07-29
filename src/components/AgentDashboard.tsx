@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import { Agent, PauseLog, AgentDocument } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Coffee, UserCheck, UserX, Lock, AlertTriangle } from 'lucide-react';
+import { Coffee, UserCheck, UserX, Lock, Minus, Plus } from 'lucide-react';
 import RealTimeClock from './RealTimeClock';
 import ClientOnly from './ClientOnly';
 import { addPauseLog, updateAgent } from '@/app/actions';
@@ -178,11 +178,52 @@ export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgen
         handleAddLog(pauseLog);
         updatesForServer.pauseStartTime = undefined;
         updatesForClient.pauseStartTime = undefined;
+        updatesForServer.totalClientsHandled = agent.totalClientsHandled;
     }
     
     optimisticUpdate(agent.id, updatesForClient);
     handleUpdateOnServer(agent.id, updatesForServer);
   };
+  
+  const handleChangeActiveClients = (agent: Agent, change: number) => {
+    const newActiveClients = agent.activeClients + change;
+
+    // Prevent going below 0 or above 5
+    if (newActiveClients < 0 || newActiveClients > 5) {
+      toast({
+        variant: "destructive",
+        title: "Limite atingido",
+        description: `O número de clientes não pode ser menor que 0 ou maior que 5.`,
+      });
+      return;
+    }
+    
+    // Logic for when a client is added
+    let newTotalClientsHandled = agent.totalClientsHandled;
+    if (change === 1) {
+        newTotalClientsHandled = agent.totalClientsHandled + 1;
+    }
+    
+    const now = new Date().toISOString();
+    
+    const updatesForClient: Partial<Agent> = { 
+        activeClients: newActiveClients, 
+        lastInteractionTime: now 
+    };
+    
+    const updatesForServer: Partial<AgentDocument> = { 
+        activeClients: newActiveClients, 
+        lastInteractionTime: now
+    };
+    
+    if (change === 1) {
+        updatesForClient.totalClientsHandled = newTotalClientsHandled;
+        updatesForServer.totalClientsHandled = newTotalClientsHandled;
+    }
+
+    optimisticUpdate(agent.id, updatesForClient);
+    handleUpdateOnServer(agent.id, updatesForServer);
+};
 
 
   const getStatus = (agent: Agent): { text: string; icon: React.ReactNode; className: string } => {
@@ -227,7 +268,13 @@ export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgen
                   <TableCell className={cn(isNextAgent && "font-bold")}>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-2">
+                          <Button variant="outline" size="icon" className='h-7 w-7' onClick={() => handleChangeActiveClients(agent, -1)} disabled={agent.activeClients === 0}>
+                              <Minus className="h-4 w-4"/>
+                          </Button>
                           <span className={cn("w-4 text-lg", isNextAgent ? "font-bold" : "font-medium")}>{agent.activeClients}</span>
+                          <Button variant="outline" size="icon" className='h-7 w-7' onClick={() => handleChangeActiveClients(agent, 1)} disabled={agent.activeClients >= 5}>
+                              <Plus className="h-4 w-4"/>
+                          </Button>
                       </div>
                   </TableCell>
                   <TableCell>

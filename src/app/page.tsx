@@ -12,7 +12,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import { clearAndSeedAgents, syncTomTicketData } from './actions';
+import { clearAndSeedAgents } from './actions';
 import { seedAgentsData } from '@/lib/seed-data';
 
 function OmoLogo() {
@@ -36,31 +36,6 @@ export default function Home() {
   const [isSeeding, setIsSeeding] = useState(false);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
-
-  // Ref para garantir que a sincronização não rode em duplicidade
-  const isSyncingRef = useRef(false);
-
-  // Efeito para sincronização periódica com a API TomTicket
-  useEffect(() => {
-    const syncInterval = setInterval(async () => {
-      if (isSyncingRef.current) {
-        console.log("Sincronização já em andamento. Pulando este ciclo.");
-        return;
-      }
-      
-      isSyncingRef.current = true;
-      try {
-        await syncTomTicketData();
-      } catch (err: any) {
-         // O erro agora é logado no servidor, não precisa mais poluir o console do cliente
-      } finally {
-        isSyncingRef.current = false;
-      }
-    }, 5000); // Roda a cada 5 segundos
-
-    return () => clearInterval(syncInterval);
-  }, []); // Roda apenas uma vez para configurar o intervalo
-
 
   // Firestore real-time listeners for agents and today's pause logs
   useEffect(() => {
