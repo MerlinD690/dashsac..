@@ -109,33 +109,36 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         let allChats: TomTicketChat[] = initialData.data;
         const totalPages = initialData.pages || 1;
 
-        // 2. If there are more pages, fetch them concurrently
+        // 2. If there are more pages, fetch them in batches
         if (totalPages > 1) {
-            const pagePromises: Promise<TomTicketApiResponse>[] = [];
-            for (let page = 2; page <= totalPages; page++) {
-                const url = `${TOMTICKET_API_URL}/chat/list?situation=2&page=${page}`;
-                const promise = fetch(url, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${apiToken}` },
-                    cache: 'no-store',
-                }).then(res => {
-                    if (!res.ok) {
-                        console.error(`Error fetching page ${page}:`, res.statusText);
-                        return { success: false, data: [] }; // Return empty on error to not break Promise.all
-                    }
-                    return res.json() as Promise<TomTicketApiResponse>;
-                }).catch(err => {
-                    console.error(`Network error fetching page ${page}:`, err);
-                    return { success: false, data: [] }; // Handle network errors as well
-                });
-                pagePromises.push(promise);
-            }
+            const BATCH_SIZE = 5; // Fetch 5 pages at a time
+            for (let i = 2; i <= totalPages; i += BATCH_SIZE) {
+                const pagePromises: Promise<TomTicketApiResponse>[] = [];
+                for (let page = i; page < i + BATCH_SIZE && page <= totalPages; page++) {
+                    const url = `${TOMTICKET_API_URL}/chat/list?situation=2&page=${page}`;
+                    const promise = fetch(url, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${apiToken}` },
+                        cache: 'no-store',
+                    }).then(res => {
+                        if (!res.ok) {
+                            console.error(`Error fetching page ${page}:`, res.statusText);
+                            return { success: false, data: [] }; // Return empty on error to not break Promise.all
+                        }
+                        return res.json() as Promise<TomTicketApiResponse>;
+                    }).catch(err => {
+                        console.error(`Network error fetching page ${page}:`, err);
+                        return { success: false, data: [] }; // Handle network errors as well
+                    });
+                    pagePromises.push(promise);
+                }
 
-            const pageResults = await Promise.all(pagePromises);
-            
-            for (const result of pageResults) {
-                if (result.success && result.data) {
-                    allChats = allChats.concat(result.data);
+                const pageResults = await Promise.all(pagePromises);
+                
+                for (const result of pageResults) {
+                    if (result.success && result.data) {
+                        allChats = allChats.concat(result.data);
+                    }
                 }
             }
         }
@@ -227,4 +230,3 @@ export async function syncTomTicketData() {
     return { success: false, message: "An unknown error occurred during sync.", dataSample: [] };
   }
 }
-
