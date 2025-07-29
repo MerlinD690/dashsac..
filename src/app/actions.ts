@@ -167,13 +167,12 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
  */
 export async function syncTomTicketData() {
   try {
-    console.log('Iniciando sincronização com TomTicket...');
     const activeChats = await getActiveChatsFromApi();
+    console.log(`[Sync] Encontrados ${activeChats.length} chats ativos na API.`);
     
-    // 1. Contar clientes por atendente da API
+    // 1. Contar clientes por atendente a partir dos dados da API
     const agentClientCount = new Map<string, number>();
     for (const chat of activeChats) {
-        // Apenas contabiliza se o chat tiver um operador atribuído
         if (chat.operator && chat.operator.name) {
             const agentName = chat.operator.name;
             agentClientCount.set(agentName, (agentClientCount.get(agentName) || 0) + 1);
@@ -185,31 +184,27 @@ export async function syncTomTicketData() {
     const snapshot = await getDocs(agentsCollection);
     const ourAgents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as AgentDocument }));
     
-    // 3. Atualizar cada atendente no Firestore
+    // 3. Preparar um lote para atualizar todos os atendentes no Firestore
     const batch = writeBatch(db);
     const now = new Date().toISOString();
 
     for (const agent of ourAgents) {
         const agentRef = doc(db, 'AtendimentoSAC', agent.id);
-        // A contagem de clientes para este atendente é o que veio da API, ou 0 se ele não estiver na lista.
         const activeClients = agentClientCount.get(agent.tomticketName || '') || 0;
         
-        // Se a contagem for diferente da que temos, ou se não houver clientes ativos (para atualizar o tempo)
-        // Isso garante que o lastInteractionTime seja atualizado mesmo para atendentes que zeraram os clientes
-        if (agent.activeClients !== activeClients) {
-            batch.update(agentRef, { 
-                activeClients: activeClients,
-                lastInteractionTime: now // Atualiza o tempo da última interação para refletir a sincronização
-            });
-             console.log(`Atualizando ${agent.name}: ${agent.activeClients} -> ${activeClients} clientes ativos.`);
-        }
+        // Sempre atualiza o atendente. 
+        // Isso garante que se um atendente ficar com 0 clientes, o valor seja atualizado.
+        batch.update(agentRef, { 
+            activeClients: activeClients,
+            lastInteractionTime: now 
+        });
     }
     
     await batch.commit();
-    console.log('Sincronização com TomTicket finalizada com sucesso.');
+    console.log('[Sync] Sincronização com Firestore finalizada.');
 
   } catch (error) {
-    console.error('Erro durante a sincronização com o TomTicket:', error);
+    console.error('ERRO no ciclo de sincronização com o TomTicket:', error);
     // Não relançamos o erro para não quebrar o intervalo no front-end
   }
 }
