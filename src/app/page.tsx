@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Zap } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { clearAndSeedAgents, syncTomTicketData } from './actions';
 import { seedAgentsData } from '@/lib/seed-data';
 
@@ -34,7 +34,6 @@ export default function Home() {
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +49,6 @@ export default function Home() {
       }
       
       isSyncingRef.current = true;
-      setIsSyncing(true);
 
       try {
         await syncTomTicketData();
@@ -58,7 +56,6 @@ export default function Home() {
         console.error("Falha no ciclo de sincronização:", err.message);
         // Não mostraremos mais o toast de erro aqui para não poluir a tela. O erro já é logado no servidor.
       } finally {
-        setIsSyncing(false);
         isSyncingRef.current = false;
       }
     }, 5000); // Roda a cada 5 segundos

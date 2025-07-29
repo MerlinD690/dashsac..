@@ -45,7 +45,7 @@ export interface PauseLogDocument {
 }
 
 
-// --- ESTRUTURAS DA API TOMTICKET (BASEADO NO POSTMAN) ---
+// --- ESTRUTURAS DA API TOMTICKET (BASEADO NO POSTMAN E DOCUMENTAÇÃO) ---
 
 // Representa a resposta da API para a consulta de chats (/chat/list)
 export interface TomTicketApiResponse {
