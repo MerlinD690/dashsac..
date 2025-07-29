@@ -49,12 +49,10 @@ export default function Home() {
       }
       
       isSyncingRef.current = true;
-
       try {
         await syncTomTicketData();
       } catch (err: any) {
-        console.error("Falha no ciclo de sincronização:", err.message);
-        // Não mostraremos mais o toast de erro aqui para não poluir a tela. O erro já é logado no servidor.
+         // O erro agora é logado no servidor, não precisa mais poluir o console do cliente
       } finally {
         isSyncingRef.current = false;
       }
