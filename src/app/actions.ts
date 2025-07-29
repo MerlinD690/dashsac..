@@ -109,12 +109,14 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         let allChats: TomTicketChat[] = initialData.data;
         const totalPages = initialData.pages || 1;
 
-        // 2. If there are more pages, fetch them in batches
+        // 2. If there are more pages, fetch them in throttled batches
         if (totalPages > 1) {
-            const BATCH_SIZE = 5; // Fetch 5 pages at a time
+            const BATCH_SIZE = 3; // Max 3 requests per second
             for (let i = 2; i <= totalPages; i += BATCH_SIZE) {
                 const pagePromises: Promise<TomTicketApiResponse>[] = [];
-                for (let page = i; page < i + BATCH_SIZE && page <= totalPages; page++) {
+                const endPage = Math.min(i + BATCH_SIZE - 1, totalPages);
+
+                for (let page = i; page <= endPage; page++) {
                     const url = `${TOMTICKET_API_URL}/chat/list?situation=2&page=${page}`;
                     const promise = fetch(url, {
                         method: 'GET',
@@ -122,8 +124,9 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
                         cache: 'no-store',
                     }).then(res => {
                         if (!res.ok) {
-                            console.error(`Error fetching page ${page}:`, res.statusText);
-                            return { success: false, data: [] }; // Return empty on error to not break Promise.all
+                            console.error(`Error fetching page ${page}:`, res.status, res.statusText);
+                            // Return empty on error to not break Promise.all
+                            return { success: false, data: [] }; 
                         }
                         return res.json() as Promise<TomTicketApiResponse>;
                     }).catch(err => {
@@ -139,6 +142,11 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
                     if (result.success && result.data) {
                         allChats = allChats.concat(result.data);
                     }
+                }
+                
+                // If there are more pages to fetch, wait for 1.1 seconds
+                if (endPage < totalPages) {
+                    await new Promise(resolve => setTimeout(resolve, 1100));
                 }
             }
         }
