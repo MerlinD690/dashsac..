@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Zap } from 'lucide-react';
-import { clearAndSeedAgents, syncTomTicketData } from './actions';
+import { clearAndSeedAgents } from './actions';
 import { seedAgentsData } from '@/lib/seed-data';
 
 function OmoLogo() {
@@ -75,51 +74,6 @@ export default function Home() {
         setIsLoading(false);
     }
   }, [isLoading, toast]);
-  
-  // TomTicket API sync logic
-  useEffect(() => {
-    let isSyncingRef = false; 
-
-    const handleSync = async () => {
-      if (isSyncingRef) {
-        console.log("SYNC_CLIENT: Sync already in progress, skipping.");
-        return;
-      }
-
-      isSyncingRef = true;
-      setIsSyncing(true);
-      try {
-        const result = await syncTomTicketData();
-        console.log("SYNC_CLIENT: Sync finished. Result: ", result);
-        if (!result.success) {
-          toast({
-            variant: 'destructive',
-            title: 'Erro de Sincronização',
-            description: result.message || 'Ocorreu um erro desconhecido.',
-          });
-        }
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro Crítico de Sincronização',
-          description: error.message,
-        });
-      } finally {
-        setIsSyncing(false);
-        isSyncingRef = false;
-      }
-    };
-
-    // Initial sync
-    handleSync();
-
-    // Set up interval for subsequent syncs
-    const intervalId = setInterval(handleSync, 5000); // Sync every 5 seconds
-
-    return () => clearInterval(intervalId);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We only want this to run once on mount
-  }, []);
-
 
   const handleSeedData = async () => {
     setIsSeeding(true);

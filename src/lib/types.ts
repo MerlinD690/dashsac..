@@ -102,23 +102,3 @@ export const AnalysisInputSchema = z.object({
   historicalData: z.array(z.any()).optional().describe('Dados de performance dos dias anteriores para análise de tendências.'),
 });
 export type AnalysisInput = z.infer<typeof AnalysisInputSchema>;
-
-// Tipos para a API do TomTicket
-interface TomTicketOperator {
-    id: string;
-    name: string;
-}
-
-export interface TomTicketChat {
-  id: string;
-  protocolo: number;
-  situation: number; 
-  operator: TomTicketOperator | null;
-}
-
-export interface TomTicketApiResponse {
-  success: boolean;
-  data: TomTicketChat[];
-  message?: string;
-  next_page?: number | null;
-}
