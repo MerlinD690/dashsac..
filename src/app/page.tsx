@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Agent, PauseLog } from '@/lib/types';
 import { AgentDashboard } from '@/components/AgentDashboard';
 import { ExportButton } from '@/components/ExportButton';
@@ -12,7 +12,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Zap } from 'lucide-react';
-import { clearAndSeedAgents } from './actions';
+import { clearAndSeedAgents, syncTomTicketData } from './actions';
 import { seedAgentsData } from '@/lib/seed-data';
 
 function OmoLogo() {
@@ -37,6 +37,35 @@ export default function Home() {
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
+
+  // Ref para garantir que a sincronização não rode em duplicidade
+  const isSyncingRef = useRef(false);
+
+  // Efeito para sincronização periódica com a API TomTicket
+  useEffect(() => {
+    const syncInterval = setInterval(async () => {
+      if (isSyncingRef.current) {
+        console.log("Sincronização já em andamento. Pulando este ciclo.");
+        return;
+      }
+      
+      isSyncingRef.current = true;
+      setIsSyncing(true);
+
+      try {
+        await syncTomTicketData();
+      } catch (err: any) {
+        console.error("Falha no ciclo de sincronização:", err.message);
+        // Não mostraremos mais o toast de erro aqui para não poluir a tela. O erro já é logado no servidor.
+      } finally {
+        setIsSyncing(false);
+        isSyncingRef.current = false;
+      }
+    }, 5000); // Roda a cada 5 segundos
+
+    return () => clearInterval(syncInterval);
+  }, []); // Roda apenas uma vez para configurar o intervalo
+
 
   // Firestore real-time listeners for agents and today's pause logs
   useEffect(() => {

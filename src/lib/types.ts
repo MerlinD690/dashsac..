@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
-// Estrutura principal do Atendente, usada no front-end
+// --- ESTRUTURAS DO BANCO DE DADOS (FIRESTORE) ---
+
+// Representa um atendente no nosso sistema. Usado no front-end.
 export interface Agent {
   id: string; // O ID do documento no Firestore
   name: string;
-  tomticketName?: string; // Nome usado no sistema TomTicket
+  tomticketName?: string; // Nome correspondente no sistema TomTicket
   lastInteractionTime: string; // ISO string
   activeClients: number;
   isAvailable: boolean;
@@ -14,10 +16,10 @@ export interface Agent {
   pauseStartTime?: string; // ISO string
 }
 
-// Como os dados do atendente são armazenados no Firestore (sem o ID no corpo do doc)
+// Como os dados do atendente são armazenados no Firestore.
 export interface AgentDocument {
   name: string;
-  tomticketName?: string; // Nome usado no sistema TomTicket
+  tomticketName?: string;
   lastInteractionTime: string;
   activeClients: number;
   isAvailable: boolean;
@@ -27,7 +29,7 @@ export interface AgentDocument {
   pauseStartTime?: string;
 }
 
-// Log de Pausa, usado no front-end
+// Representa um log de pausa no nosso sistema.
 export interface PauseLog {
   id: string; // O ID do documento no Firestore
   agentName: string;
@@ -35,14 +37,54 @@ export interface PauseLog {
   pauseEndTime: string; // ISO string
 }
 
-// Como os dados do log de pausa são armazenados no Firestore
+// Como os dados do log de pausa são armazenados no Firestore.
 export interface PauseLogDocument {
     agentName: string;
     pauseStartTime: string;
     pauseEndTime: string;
 }
 
-// Tipos relacionados à IA
+
+// --- ESTRUTURAS DA API TOMTICKET (BASEADO NO POSTMAN) ---
+
+// Representa a resposta da API para a consulta de chats (/chat/list)
+export interface TomTicketApiResponse {
+  success: boolean;
+  data: TomTicketChat[];
+  pagination: {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+  };
+}
+
+// Representa um único chat na resposta da API
+export interface TomTicketChat {
+  id: number;
+  protocol: string;
+  situation: string;
+  customer: {
+    id: number;
+    name: string;
+    email: string | null;
+  };
+  operator: {
+    id: number;
+    name: string;
+  } | null; // O operador pode ser nulo se o chat não estiver atribuído
+  department: {
+    id: number;
+    name: string;
+  };
+  unread_messages: number;
+  last_update: string; // Ex: "2024-07-31 15:30:00"
+  initial_date: string; // Ex: "2024-07-31 15:25:00"
+}
+
+
+// --- ESTRUTURAS PARA ANÁLISE DE IA ---
+
 export const AgentPerformanceSchema = z.object({
     name: z.string().describe('Nome do atendente.'),
     clientsHandled: z.number().describe('Total de clientes atendidos.'),
@@ -74,7 +116,6 @@ export interface DailyReport extends AnalysisOutput {
     date: string; // YYYY-MM-DD
 }
 
-// Este tipo é usado quando passamos os dados para a IA, incluindo o tempo de pausa pré-calculado
 export interface AgentWithPauseData {
   name: string;
   totalClientsHandled: number;

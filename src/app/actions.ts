@@ -3,7 +3,7 @@
 require('dotenv').config();
 
 import { db } from '@/lib/firebase';
-import { AgentDocument, PauseLogDocument, DailyReport } from '@/lib/types';
+import { AgentDocument, PauseLogDocument, DailyReport, TomTicketApiResponse, TomTicketChat } from '@/lib/types';
 import { collection, getDocs, doc, writeBatch, updateDoc, addDoc, query, where, orderBy, limit, setDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
@@ -69,4 +69,37 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
   
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => doc.data() as DailyReport);
+}
+
+
+// --- LÓGICA DE SINCRONIZAÇÃO TOMTICKET (RECRIADA DO ZERO) ---
+
+/**
+ * Busca os chats ativos da API do TomTicket, respeitando o rate limit.
+ * @returns Uma lista de todos os chats ativos.
+ */
+async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
+  // A lógica de busca será implementada aqui no próximo passo.
+  console.log('Fase 1: getActiveChatsFromApi foi chamada, mas ainda não tem lógica.');
+  return []; // Retorna um array vazio por enquanto.
+}
+
+/**
+ * Sincroniza os dados do TomTicket com o Firestore.
+ * 1. Busca os chats ativos da API.
+ * 2. Conta quantos clientes cada atendente tem.
+ * 3. Atualiza o campo 'activeClients' no Firestore.
+ */
+export async function syncTomTicketData() {
+  try {
+    console.log('Fase 1: Iniciando syncTomTicketData.');
+    const activeChats = await getActiveChatsFromApi();
+    
+    // A lógica de contagem e atualização será implementada aqui no próximo passo.
+    console.log(`Fase 1: ${activeChats.length} chats recebidos (ainda é um esqueleto).`);
+
+  } catch (error) {
+    console.error('Erro durante a sincronização com o TomTicket:', error);
+    // Não vamos mais jogar o erro para não quebrar o cliente, apenas logar.
+  }
 }
