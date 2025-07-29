@@ -75,8 +75,8 @@ export async function getDailyReports(days = 30): Promise<DailyReport[]> {
 // --- LÓGICA DE SINCRONIZAÇÃO TOMTICKET (RECONSTRUÍDA DO ZERO) ---
 
 /**
- * Busca os chats ativos da API do TomTicket, respeitando o rate limit.
- * @returns Uma lista de todos os chats ativos.
+ * Busca os chats da API do TomTicket, respeitando o rate limit, e filtra internamente.
+ * @returns Uma lista de todos os chats em situação "Em conversa" (situation: 2).
  */
 async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
   const apiToken = process.env.TOMTICKET_API_TOKEN;
@@ -90,7 +90,7 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
 
   try {
     // 1. Primeira chamada para descobrir a paginação
-    const firstPageUrl = `${baseUrl}?situation=2&page=1`;
+    const firstPageUrl = `${baseUrl}?page=1`; // Removemos o &situation=2
     const firstResponse = await fetch(firstPageUrl, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${apiToken}` },
@@ -107,41 +107,40 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
     if (firstResult.success && firstResult.data) {
       allChats.push(...firstResult.data);
     } else if (!firstResult.success) {
-      console.error(`A API TomTicket retornou um erro na página 1: ${firstResult.message}`);
-      // Decidimos não lançar um erro aqui para não quebrar o ciclo, mas logamos.
+      console.error(`A API TomTicket retornou um erro na página 1: ${firstResult.message || 'Mensagem de erro não disponível.'}`);
+      // Não lançamos erro, mas logamos para não quebrar o ciclo.
     }
 
     const totalPages = firstResult.pagination.last_page;
     if (totalPages <= 1) {
-      return allChats;
+      // Filtra os chats da primeira página antes de retornar
+      return allChats.filter(chat => chat.situation === 2);
     }
-
+    
     // 2. Criar uma lista de páginas restantes para buscar
     const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
-    
-    // 3. Processar em lotes para respeitar o rate limit (3 req/sec)
-    const batchSize = 3;
+    const batchSize = 3; // Lotes de 3 requisições
+
     for (let i = 0; i < remainingPages.length; i += batchSize) {
         const batch = remainingPages.slice(i, i + batchSize);
         
         const batchPromises = batch.map(page => {
-            const url = `${baseUrl}?situation=2&page=${page}`;
+            const url = `${baseUrl}?page=${page}`; // Também sem o situation
             return fetch(url, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${apiToken}` },
                 cache: 'no-store',
             }).then(async (res) => {
                 if (!res.ok) {
-                    // Loga o erro mas não quebra o lote inteiro
                     console.error(`Erro ao buscar página ${page}: ${res.status}`);
-                    return null; // Retorna nulo para ser filtrado depois
+                    return null;
                 }
                 const pageResult = await res.json() as TomTicketApiResponse;
                 if (!pageResult.success) {
-                    console.error(`A API TomTicket retornou um erro na página ${page}: ${pageResult.message}`);
+                    console.error(`A API TomTicket retornou um erro na página ${page}: ${pageResult.message || 'Mensagem de erro não disponível.'}`);
                     return null;
                 }
-                return pageResult;
+                return pageResult.data;
             }).catch(err => {
                 console.error(`Erro de rede na página ${page}:`, err);
                 return null;
@@ -151,18 +150,19 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         const results = await Promise.all(batchPromises);
 
         for (const result of results) {
-            if (result && result.data) {
-                allChats.push(...result.data);
+            if (result) {
+                allChats.push(...result);
             }
         }
 
-        // Pausa de 1.1 segundos entre os lotes para garantir a conformidade com o rate limit
+        // Pausa entre lotes
         if (i + batchSize < remainingPages.length) {
             await new Promise(resolve => setTimeout(resolve, 1100));
         }
     }
     
-    return allChats;
+    // Filtra todos os chats coletados para retornar apenas os ativos
+    return allChats.filter(chat => chat.situation === 2);
 
   } catch (error) {
     console.error('Erro geral ao buscar chats da API do TomTicket:', error);
@@ -175,10 +175,11 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
  */
 export async function syncTomTicketData() {
   try {
+    // 1. Busca apenas os chats já filtrados (situation: 2)
     const activeChats = await getActiveChatsFromApi();
-    console.log(`[Sync] Encontrados ${activeChats.length} chats ativos na API.`);
+    console.log(`[Sync] Encontrados ${activeChats.length} chats ativos (situation: 2) na API.`);
     
-    // 1. Contar clientes por atendente a partir dos dados da API
+    // 2. Contar clientes por atendente a partir dos dados da API
     const agentClientCount = new Map<string, number>();
     for (const chat of activeChats) {
         if (chat.operator && chat.operator.name) {
@@ -187,12 +188,12 @@ export async function syncTomTicketData() {
         }
     }
 
-    // 2. Buscar todos os atendentes do nosso Firestore
+    // 3. Buscar todos os atendentes do nosso Firestore
     const agentsCollection = collection(db, 'AtendimentoSAC');
     const snapshot = await getDocs(agentsCollection);
     const ourAgents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as AgentDocument }));
     
-    // 3. Preparar um lote para atualizar todos os atendentes no Firestore
+    // 4. Preparar um lote para atualizar todos os atendentes no Firestore
     const batch = writeBatch(db);
     const now = new Date().toISOString();
 
@@ -202,6 +203,7 @@ export async function syncTomTicketData() {
         
         // Sempre atualiza o atendente. 
         // Isso garante que se um atendente ficar com 0 clientes, o valor seja atualizado.
+        // E se o valor não mudar, a escrita é mínima no Firestore.
         batch.update(agentRef, { 
             activeClients: activeClients,
             lastInteractionTime: now 
@@ -209,7 +211,7 @@ export async function syncTomTicketData() {
     }
     
     await batch.commit();
-    console.log('[Sync] Sincronização com Firestore finalizada.');
+    console.log(`[Sync] Sincronização com Firestore finalizada. ${agentClientCount.size} atendentes da API tinham chats ativos.`);
 
   } catch (error) {
     console.error('ERRO no ciclo de sincronização com o TomTicket:', error);
