@@ -13,7 +13,8 @@ const API_URL = "https://api.tomticket.com/v2.0/chat/list";
 // Função auxiliar para buscar todos os chats ativos, cuidando da paginação.
 async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
   if (!API_TOKEN) {
-    throw new Error("TOMTICKET_API_TOKEN não foi configurado no arquivo .env");
+    console.error("TOMTICKET_API_TOKEN não configurado. Verifique o arquivo .env");
+    throw new Error("TOMTICKET_API_TOKEN não foi configurado.");
   }
 
   let allChats: TomTicketChat[] = [];
@@ -22,12 +23,16 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
 
   while (hasMorePages) {
     try {
-      const response = await fetch(`${API_URL}?page=${currentPage}`, {
+      // Constrói a URL para a página atual
+      const url = `${API_URL}?page=${currentPage}`;
+      console.log(`[Sync] Buscando dados da TomTicket: ${url}`);
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${API_TOKEN}`,
         },
-        cache: 'no-store' // Garante que não estamos usando uma resposta em cache
+        cache: 'no-store'
       });
 
       if (!response.ok) {
@@ -58,11 +63,10 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
 
     } catch (error) {
       console.error("Erro crítico ao conectar com a API TomTicket:", error);
-      // Paramos o loop em caso de erro de rede para não sobrecarregar
       throw new Error("Não foi possível conectar à API da TomTicket.");
     }
   }
-
+  console.log(`[Sync] Total de ${allChats.length} chats ativos encontrados em todas as páginas.`);
   return allChats;
 }
 
@@ -78,25 +82,30 @@ export async function syncTomTicketData() {
     return { totalChats: 0 };
   }
 
+  // 1. Buscar todos os chats ativos da API
   const activeChats = await getActiveChatsFromApi();
-  console.log(`[Sync] Encontrados ${activeChats.length} chats ativos (situação 1 ou 2) na API.`);
-
+  
+  // 2. Contar quantos chats cada atendente (pelo tomticketName) possui
   const agentChatCounts: { [tomticketName: string]: number } = {};
   for (const chat of activeChats) {
+    // Garante que o operador existe e tem um nome antes de contar
     if (chat.operator && chat.operator.name) {
       agentChatCounts[chat.operator.name] = (agentChatCounts[chat.operator.name] || 0) + 1;
     }
   }
-  console.log('[Sync] Contagem de chats por atendente:', agentChatCounts);
+  console.log('[Sync] Contagem de chats por atendente da API:', agentChatCounts);
 
   const batch = writeBatch(db);
   const now = new Date().toISOString();
 
+  // 3. Atualizar cada atendente no Firestore
   allAgents.forEach(agent => {
     const tomticketName = agent.tomticketName;
+    // Pega a contagem do mapa ou define 0 se o atendente não tiver chats ativos
     const activeClientCount = tomticketName ? (agentChatCounts[tomticketName] || 0) : 0;
     
-    // Incrementa o total apenas se o número de clientes aumentou desde a última checagem (evita contagem dupla)
+    // Lógica para incrementar o total de atendimentos do dia
+    // Incrementa o total apenas se a contagem de clientes aumentou (evita contagem dupla)
     const newTotalClients = agent.activeClients < activeClientCount 
       ? agent.totalClientsHandled + (activeClientCount - agent.activeClients)
       : agent.totalClientsHandled;
@@ -105,12 +114,13 @@ export async function syncTomTicketData() {
     batch.update(agentRef, { 
       activeClients: activeClientCount,
       totalClientsHandled: newTotalClients,
-      lastInteractionTime: now,
+      lastInteractionTime: now, // Atualiza a interação para o momento da sincronização
     });
   });
 
   await batch.commit();
-  console.log(`[Sync] Sincronização concluída. ${allAgents.length} atendentes atualizados.`);
+  console.log(`[Sync] Sincronização concluída. ${allAgents.length} atendentes atualizados no Firestore.`);
+  
   return { totalChats: activeChats.length };
 }
 
