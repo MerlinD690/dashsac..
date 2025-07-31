@@ -32,6 +32,7 @@ import { addPauseLog, updateAgent } from '@/app/actions';
 import { useState, useEffect } from 'react';
 
 const AVAILABILITY_PASSWORD = "150121";
+const MAX_CLIENTS = 5;
 
 // Component to show a running timer for the pause
 const PauseTimer = ({ startTime }: { startTime: string }) => {
@@ -106,7 +107,6 @@ export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgen
     );
   };
 
-  
   const handleAvailabilityIconClick = (agent: Agent) => {
     if (agent.activeClients > 0 || agent.isOnPause) {
         toast({
@@ -149,7 +149,6 @@ export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgen
     setAgentToUpdate(null);
   };
 
-
   const handleTogglePause = (agent: Agent) => {
     const canTogglePause = !(!agent.isOnPause && (!agent.isAvailable || agent.activeClients > 0));
     if (!canTogglePause) {
@@ -185,6 +184,46 @@ export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgen
     handleUpdateOnServer(agent.id, updatesForServer);
   };
 
+  const handleChangeClientCount = (agent: Agent, change: number) => {
+    const currentCount = agent.activeClients;
+    const newCount = currentCount + change;
+
+    if (newCount < 0 || newCount > MAX_CLIENTS) {
+      toast({
+        variant: 'destructive',
+        title: 'Ação não permitida',
+        description: `O número de clientes deve ser entre 0 e ${MAX_CLIENTS}.`,
+      });
+      return;
+    }
+
+    if (!agent.isAvailable || agent.isOnPause) {
+       toast({
+        variant: 'destructive',
+        title: 'Ação não permitida',
+        description: 'Não é possível adicionar clientes a um atendente indisponível ou em pausa.',
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const totalClientsHandled = change > 0 ? agent.totalClientsHandled + 1 : agent.totalClientsHandled;
+    
+    const updatesForClient: Partial<Agent> = {
+      activeClients: newCount,
+      lastInteractionTime: now,
+      totalClientsHandled: totalClientsHandled,
+    };
+
+    const updatesForServer: Partial<AgentDocument> = {
+      activeClients: newCount,
+      lastInteractionTime: now,
+      totalClientsHandled: totalClientsHandled,
+    };
+
+    optimisticUpdate(agent.id, updatesForClient);
+    handleUpdateOnServer(agent.id, updatesForServer);
+  };
 
   const getStatus = (agent: Agent): { text: string; icon: React.ReactNode; className: string } => {
     if (agent.isOnPause) return { text: 'Em Pausa', icon: <Coffee className="h-4 w-4" />, className: 'text-yellow-600' };
@@ -217,6 +256,8 @@ export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgen
               const isNextAgent = agent.id === nextAgentId;
               const isDisabledForLock = agent.activeClients > 0 || agent.isOnPause;
               const isDisabledForPause = !agent.isOnPause && (!agent.isAvailable || agent.activeClients > 0);
+              const canAddClient = agent.isAvailable && !agent.isOnPause && agent.activeClients < MAX_CLIENTS;
+              const canRemoveClient = agent.activeClients > 0;
 
               return (
                 <TableRow key={agent.id} className={cn(isNextAgent && "bg-primary/20 hover:bg-primary/30")}>
@@ -227,7 +268,15 @@ export function AgentDashboard({ agents, setAgents }: { agents: Agent[]; setAgen
                   </TableCell>
                   <TableCell className={cn(isNextAgent && "font-bold")}>{new Date(agent.lastInteractionTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</TableCell>
                   <TableCell className="text-center">
-                    <span className={cn("w-4 text-lg", isNextAgent ? "font-bold" : "font-medium")}>{agent.activeClients}</span>
+                    <div className="flex items-center justify-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleChangeClientCount(agent, -1)} disabled={!canRemoveClient}>
+                           <Minus className="h-4 w-4"/>
+                        </Button>
+                        <span className={cn("w-4 text-lg", isNextAgent ? "font-bold" : "font-medium")}>{agent.activeClients}</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleChangeClientCount(agent, 1)} disabled={!canAddClient}>
+                           <Plus className="h-4 w-4"/>
+                        </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className={cn('flex items-center gap-2 font-medium', status.className)}>
