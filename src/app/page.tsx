@@ -11,8 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { clearAndSeedAgents } from './actions';
+import { RefreshCw, Zap } from 'lucide-react';
+import { clearAndSeedAgents, syncTomTicketData } from './actions';
 import { seedAgentsData } from '@/lib/seed-data';
 
 function OmoLogo() {
@@ -34,6 +34,7 @@ export default function Home() {
   const [pauseLogs, setPauseLogs] = useState<PauseLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
@@ -94,6 +95,27 @@ export default function Home() {
     }
   };
 
+  const handleSyncData = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await syncTomTicketData();
+      toast({
+        title: 'Sincronização Concluída!',
+        description: `Encontrados e atualizados ${result.totalChats} chats ativos.`,
+      });
+    } catch (error: any) {
+      console.error("Failed to sync data:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro na Sincronização',
+        description: error.message || 'Não foi possível sincronizar com a API do TomTicket. Verifique o console.',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+
   if (error) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
@@ -117,6 +139,10 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+             <Button onClick={handleSyncData} variant="outline" size="sm" disabled={isSyncing}>
+              <Zap className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}
+            </Button>
             <Button onClick={handleSeedData} variant="outline" size="sm" disabled={isSeeding}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isSeeding ? 'animate-spin' : ''}`} />
               {isSeeding ? 'Resetando...' : 'Resetar Dados'}
