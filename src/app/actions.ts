@@ -43,8 +43,9 @@ async function getActiveChatsFromApi(): Promise<TomTicketChat[]> {
         throw new Error(`Erro da API TomTicket: ${result.message}`);
       }
 
+      // Filtra os chats em "Aguardando" (1) ou "Em conversa" (2)
       const activeChats = result.data.filter((chat: TomTicketChat) => 
-        chat.situation == 1 || chat.situation == 2 // 1: Aguardando, 2: Em conversa
+        chat.situation == '1' || chat.situation == '2'
       );
       
       allChats = allChats.concat(activeChats);
